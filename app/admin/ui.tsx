@@ -1,6 +1,6 @@
 "use client";
 
-import{useMemo,useState}from"react";
+import{useMemo,useRef,useState}from"react";
 import{createClient}from"@/lib/supabase/client";
 import{
   Home,PanelsTopLeft,CalendarDays,LibraryBig,Settings2,ChevronLeft,ChevronRight,
@@ -417,7 +417,9 @@ function EventWizard({
   const initialStep=Math.max(1,Math.min(8,Number(event.wizard_step||1)));
   const[step,setStep]=useState(initialStep);
   const[saving,setSaving]=useState(false);
+  const wizardAnchorRef=useRef<HTMLDivElement>(null);
   const set=(key:string,value:any)=>setState((v:AnyRow)=>({...v,[key]:value}));
+  const focusCurrentStep=()=>window.setTimeout(()=>wizardAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),60);
   const startParts=splitLocalDateTime(state.starts_at);
   const endParts=splitLocalDateTime(state.ends_at);
   const admission=state.admission_type||"FREE";
@@ -466,7 +468,7 @@ function EventWizard({
     const saved=await onSave(event.id,{...patchForStep(),wizard_step:next});
     setSaving(false);
     if(!saved)return;
-    setState(saved);setStep(next);window.scrollTo({top:0,behavior:"smooth"});
+    setState(saved);setStep(next);focusCurrentStep();
   }
   async function saveDraft(){
     if(saving)return;setSaving(true);
@@ -500,10 +502,11 @@ function EventWizard({
       <a className="admin-preview-button" href={"/eventos/"+state.slug} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span>Prévia</span></a>
     </div>
 
-    <div className="event-wizard-progress"><div><strong>Etapa {step} de 8</strong><span>{Math.round(step/8*100)}%</span></div><div className="event-wizard-progress-bar"><span style={{width:(step/8*100)+"%"}}/></div></div>
-
-    <div className="event-wizard-steps" aria-label="Etapas do cadastro">
-      {steps.map(([label,key],i)=><button key={key} className={(step===i+1?"active ":"")+(completed[key]?"done":"")} onClick={()=>jumpTo(i+1)}><span>{i+1}</span><small>{label}</small></button>)}
+    <div className="event-wizard-anchor" ref={wizardAnchorRef}>
+      <div className="event-wizard-progress"><div><strong>Etapa {step} de 8 · {steps[step-1][0]}</strong><span>{Math.round(step/8*100)}%</span></div><div className="event-wizard-progress-bar"><span style={{width:(step/8*100)+"%"}}/></div></div>
+      <div className="event-wizard-steps" aria-label="Etapas do cadastro">
+        {steps.map(([label,key],i)=><button key={key} title={label} aria-label={"Etapa "+(i+1)+": "+label} className={(step===i+1?"active ":"")+(completed[key]?"done":"")} onClick={()=>jumpTo(i+1)}><span>{i+1}</span><small>{label}</small></button>)}
+      </div>
     </div>
 
     <section className="event-wizard-panel">
