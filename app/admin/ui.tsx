@@ -35,12 +35,12 @@ const sectionNames:Record<string,string>={
 };
 
 export function AdminClient({
-  userId,userEmail,roles,initialEvents,initialEventGuests,initialEventSchedule,initialEventFaqs,initialTestimonials,initialSections,initialStory,
+  userId,userEmail,roles,initialEvents,initialEventGuests,initialEventSchedule,initialEventFaqs,initialTestimonials,initialPublications,initialSections,initialStory,
   initialScriptures,initialInstagram,initialPhotos,initialAlbums,initialSocial,initialSettings
 }:{
   userId:string;userEmail:string;roles:string[];
   initialEvents:AnyRow[];initialEventGuests:AnyRow[];initialEventSchedule:AnyRow[];initialEventFaqs:AnyRow[];
-  initialTestimonials:AnyRow[];initialSections:AnyRow[];initialStory:AnyRow[];
+  initialTestimonials:AnyRow[];initialPublications:AnyRow[];initialSections:AnyRow[];initialStory:AnyRow[];
   initialScriptures:AnyRow[];initialInstagram:AnyRow[];initialPhotos:AnyRow[];initialAlbums:AnyRow[];
   initialSocial:AnyRow[];initialSettings:AnyRow[];
 }){
@@ -56,6 +56,7 @@ export function AdminClient({
   const[eventSchedule,setEventSchedule]=useState(initialEventSchedule);
   const[eventFaqs,setEventFaqs]=useState(initialEventFaqs);
   const[testimonials,setTestimonials]=useState(initialTestimonials);
+  const[publications,setPublications]=useState(initialPublications);
   const[sections,setSections]=useState(initialSections);
   const[story,setStory]=useState(initialStory);
   const[scriptures,setScriptures]=useState(initialScriptures);
@@ -161,7 +162,11 @@ export function AdminClient({
   async function moderate(id:string,status:string){
     const{data,error}=await s.from("testimonials").update({status,reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",id).select("id,display_name_original,original_text,publication_consent,status,created_at").single();
     if(error){notify(error.message);return}
-    setTestimonials(testimonials.map(t=>t.id===id?data:t));await audit("TESTIMONIAL_STATUS_CHANGED","testimonial",id,{status});notify("Testemunho atualizado.");
+    if(status==="ARQUIVADO"){
+      const{data:pub}=await s.from("testimonial_publications").update({published_at:null,edited_by:userId}).eq("testimonial_id",id).select().maybeSingle();
+      if(pub)setPublications(current=>current.map(x=>x.id===pub.id?pub:x));
+    }
+    setTestimonials(current=>current.map(t=>t.id===id?data:t));await audit("TESTIMONIAL_STATUS_CHANGED","testimonial",id,{status});notify("Testemunho atualizado.");
   }
   async function publish(t:AnyRow){
     if(t.publication_consent==="PRIVATE_ONLY"){notify("Este testemunho não autoriza publicação.");return}
@@ -169,9 +174,23 @@ export function AdminClient({
     const slug=(slugify(title)||"testemunho")+"-"+String(t.id).slice(0,8);
     const display=t.publication_consent==="ANONYMOUS"?"Anônimo":(t.display_name_original||"Anônimo");
     const excerpt=t.original_text.replace(/\s+/g," ").slice(0,220);
-    const{error}=await s.from("testimonial_publications").upsert({testimonial_id:t.id,slug,public_title:title,public_excerpt:excerpt,public_text:t.original_text,public_display_name:display,published_at:new Date().toISOString(),edited_by:userId},{onConflict:"testimonial_id"});
+    const{data:pub,error}=await s.from("testimonial_publications").upsert({testimonial_id:t.id,slug,public_title:title,public_excerpt:excerpt,public_text:t.original_text,public_display_name:display,published_at:new Date().toISOString(),edited_by:userId},{onConflict:"testimonial_id"}).select().single();
     if(error){notify(error.message);return}
+    setPublications(current=>current.some(x=>x.id===pub.id)?current.map(x=>x.id===pub.id?pub:x):[pub,...current]);
     await moderate(t.id,"PUBLICADO");
+  }
+  async function savePublication(id:string,patch:AnyRow){
+    const{data,error}=await s.from("testimonial_publications").update({...patch,edited_by:userId}).eq("id",id).select().single();
+    if(error){notify(error.message);return}
+    setPublications(current=>current.map(x=>x.id===id?data:x));notify("Publicação atualizada.");
+  }
+  async function deleteTestimonial(id:string){
+    if(!window.confirm("Remover este testemunho definitivamente? A publicação ligada a ele também será removida."))return;
+    const{error}=await s.from("testimonials").delete().eq("id",id);
+    if(error){notify(error.message);return}
+    setTestimonials(current=>current.filter(x=>x.id!==id));
+    setPublications(current=>current.filter(x=>x.testimonial_id!==id));
+    await audit("TESTIMONIAL_DELETED","testimonial",id);notify("Testemunho removido.");
   }
   async function createAlbum(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();const fd=new FormData(e.currentTarget);const title=String(fd.get("title")||"").trim(),slug=slugify(String(fd.get("slug")||title));
@@ -365,7 +384,7 @@ export function AdminClient({
 
         {selectedLibrary==="testimonials"&&<div className="admin-library-view">
           <div className="admin-section-intro"><span className="eyebrow">Moderação</span><h2>Testemunhos</h2><p>Revise os relatos recebidos e escolha o que pode ser publicado.</p></div>
-          <div className="admin-editor-stack">{testimonials.map(t=><article className="admin-content-card" key={t.id}><div className="admin-card-top"><span className="status-pill">{t.status}</span><small>{new Date(t.created_at).toLocaleDateString("pt-BR")}</small></div><h3>{t.display_name_original||"Sem identificação"}</h3><p className="admin-long-copy">{t.original_text}</p><div className="admin-card-actions"><button onClick={()=>moderate(t.id,"EM_ANALISE")}>Em análise</button><button onClick={()=>moderate(t.id,"APROVADO")}>Aprovar</button>{t.publication_consent!=="PRIVATE_ONLY"&&<button className="primary" onClick={()=>publish(t)}>Publicar</button>}<button className="danger" onClick={()=>moderate(t.id,"ARQUIVADO")}>Arquivar</button></div></article>)}</div>
+          <div className="admin-editor-stack">{testimonials.map(t=>{const pub=publications.find(p=>p.testimonial_id===t.id);return <article className="admin-content-card" key={t.id}><div className="admin-card-top"><span className="status-pill">{t.status}</span><small>{new Date(t.created_at).toLocaleDateString("pt-BR")}</small></div><h3>{t.display_name_original||"Sem identificação"}</h3><p className="admin-long-copy">{t.original_text}</p><div className="admin-card-actions"><button onClick={()=>moderate(t.id,"EM_ANALISE")}>Em análise</button><button onClick={()=>moderate(t.id,"APROVADO")}>Aprovar</button>{t.publication_consent!=="PRIVATE_ONLY"&&<button className="primary" onClick={()=>publish(t)}>{pub?"Republicar":"Publicar"}</button>}<button className="danger" onClick={()=>moderate(t.id,"ARQUIVADO")}>Ocultar</button><button className="danger" onClick={()=>deleteTestimonial(t.id)}>Remover</button></div>{pub&&<TestimonialPublicationEditor item={pub} onSave={savePublication}/>}</article>})}</div>
         </div>}
 
         {selectedLibrary==="scripture"&&<div className="admin-library-view">
@@ -718,6 +737,20 @@ function FaqCreate({eventId,onAdd}:{eventId:string;onAdd:(eventId:string,payload
 function FaqEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
   const[q,setQ]=useState(item.question||""),[a,setA]=useState(item.answer||"");
   return <details className="event-item-card"><summary><div><strong>{q}</strong></div><ChevronRight size={17}/></summary><div className="event-item-body"><Field label="Pergunta"><input value={q} onChange={e=>setQ(e.target.value)}/></Field><Field label="Resposta"><textarea value={a} onChange={e=>setA(e.target.value)}/></Field><div className="event-item-actions"><button className="admin-save-button" onClick={()=>onSave(item.id,{question:q,answer:a})}><Save size={16}/>Salvar</button><button className="event-delete-button" onClick={()=>onDelete(item.id)}><Trash2 size={16}/>Remover</button></div></div></details>
+}
+
+function TestimonialPublicationEditor({item,onSave}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void}){
+  const[state,setState]=useState<AnyRow>({...item});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
+  const visible=!!state.published_at;
+  return <details className="admin-publication-editor"><summary><span>Edição pública</span><small>{visible?"Visível no site":"Oculto"}</small></summary><div className="admin-section-body">
+    <div className="admin-inline-toggle"><div><strong>Exibir testemunho</strong><span>Ocultar preserva o conteúdo no painel.</span></div><button className={visible?"on":""} onClick={()=>set("published_at",visible?null:new Date().toISOString())} type="button"><span/></button></div>
+    <Field label="Título"><input value={state.public_title||""} onChange={e=>set("public_title",e.target.value)}/></Field>
+    <Field label="Nome exibido"><input value={state.public_display_name||""} onChange={e=>set("public_display_name",e.target.value)}/></Field>
+    <Field label="Resumo"><textarea value={state.public_excerpt||""} onChange={e=>set("public_excerpt",e.target.value)}/></Field>
+    <Field label="Texto publicado"><textarea value={state.public_text||""} onChange={e=>set("public_text",e.target.value)}/></Field>
+    <label className="admin-check"><input type="checkbox" checked={state.featured===true} onChange={e=>set("featured",e.target.checked)}/>Destacar na página inicial</label>
+    <button className="admin-save-button" onClick={()=>onSave(item.id,{public_title:state.public_title,public_display_name:state.public_display_name,public_excerpt:state.public_excerpt||null,public_text:state.public_text,featured:state.featured===true,published_at:state.published_at})}><Save size={17}/>Salvar publicação</button>
+  </div></details>
 }
 
 function ScriptureEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
