@@ -307,7 +307,7 @@ export function AdminClient({
           <div className="admin-section-intro compact"><span className="eyebrow">{mode==="basic"?"Edição básica":"Modo avançado"}</span><h2>{currentPage.label}</h2><p>{mode==="basic"?"Edite os textos, imagens e visibilidade sem ver configurações técnicas.":"Controle completo da seção: ordem, CTA, alinhamento, estilo, movimento e configurações avançadas."}</p></div>
           <div className="admin-editor-stack">
             {pageSections.map(sec=><SectionEditor key={sec.id} section={sec} mode={mode} title={sectionNames[sec.section_key]||sec.title} onSave={saveSection} notify={notify}/>)}
-            {currentPage.special==="story"&&<div className="admin-subsection-group"><div className="admin-subsection-title"><BookHeart size={20}/><div><strong>História em capítulos</strong><span>Linha do tempo completa da página Sobre</span></div></div>{story.map(ch=><StoryEditor key={ch.id} chapter={ch} mode={mode} onSave={saveStory} notify={notify}/>)}</div>}
+            {currentPage.special==="story"&&<div className="admin-subsection-group"><div className="admin-subsection-title"><BookHeart size={20}/><div><strong>História em capítulos</strong><span>Linha do tempo completa da página Sobre</span></div></div>{story.map(ch=><StoryEditor key={ch.id} chapter={ch} mode={mode} onSave={saveStory} onDelete={deleteStory} notify={notify}/>)}</div>}
           </div>
         </div>}
       </section>}
@@ -335,7 +335,7 @@ export function AdminClient({
             guests={eventGuests.filter(x=>x.event_id===e.id)} schedule={eventSchedule.filter(x=>x.event_id===e.id)} faqs={eventFaqs.filter(x=>x.event_id===e.id)}
             onAddGuest={addEventGuest} onUpdateGuest={updateEventGuest} onDeleteGuest={deleteEventGuest}
             onAddSchedule={addScheduleItem} onUpdateSchedule={updateScheduleItem} onDeleteSchedule={deleteScheduleItem}
-            onAddFaq={addEventFaq} onUpdateFaq={updateEventFaq} onDeleteFaq={deleteEventFaq}
+            onAddFaq={addEventFaq} onUpdateFaq={updateEventFaq} onDeleteFaq={deleteEventFaq} onDeleteEvent={deleteEvent}
           />
         })()}
       </section>}
@@ -359,7 +359,8 @@ export function AdminClient({
           <details className="admin-create-panel"><summary><Plus size={18}/>Criar álbum</summary><form className="form" onSubmit={createAlbum}>
             <Field label="Nome"><input name="title" required/></Field><Field label="Slug opcional"><input name="slug"/></Field><Field label="Descrição"><textarea name="description"/></Field><button className="btn btn-dark">Criar álbum</button>
           </form></details>
-          <div className="admin-photo-grid">{photos.map(p=><figure key={p.id}><img src={p.url} alt={p.alt_text||""}/><figcaption>{p.alt_text||"Sem descrição"}{p.featured&&<span>Destaque</span>}</figcaption></figure>)}</div>
+          {albums.length>0&&<div className="admin-editor-stack">{albums.map(a=><AlbumEditor key={a.id} album={a} onSave={saveAlbum} onDelete={deleteAlbum}/>)}</div>}
+          <div className="admin-photo-grid">{photos.map(p=><PhotoEditor key={p.id} photo={p} albums={albums} onSave={savePhoto} onDelete={deletePhoto}/>)}</div>
         </div>}
 
         {selectedLibrary==="testimonials"&&<div className="admin-library-view">
@@ -373,15 +374,18 @@ export function AdminClient({
             <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option><option value="about">Sobre</option></select></Field>
             <Field label="Referência"><input name="reference" required/></Field><Field label="Versículo"><textarea name="verse_text" required/></Field><Field label="Reflexão"><textarea name="reflection"/></Field><button className="btn btn-dark">Adicionar</button>
           </form></details>
-          <div className="admin-editor-stack">{scriptures.map(v=><ScriptureEditor key={v.id} item={v} onSave={saveScripture}/>)}</div>
+          <div className="admin-editor-stack">{scriptures.map(v=><ScriptureEditor key={v.id} item={v} onSave={saveScripture} onDelete={deleteScripture}/>)}</div>
         </div>}
 
         {selectedLibrary==="instagram"&&<div className="admin-library-view">
-          <div className="admin-section-intro"><span className="eyebrow">Curadoria</span><h2>Instagram</h2><p>Escolha manualmente os posts de @cafe_testemunho que aparecem no site.</p></div>
-          <details className="admin-create-panel"><summary><Plus size={18}/>Adicionar post</summary><form className="form" onSubmit={addInstagram}>
-            <Field label="Link do post"><input name="post_url" type="url" required/></Field><Field label="Título"><input name="title"/></Field><Field label="Legenda curta"><textarea name="caption"/></Field><Field label="Imagem de capa (URL)"><input name="cover_url" type="url"/></Field><Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option><option value="about">Sobre</option><option value="both">Home e Sobre</option></select></Field><button className="btn btn-dark">Adicionar</button>
+          <div className="admin-section-intro"><span className="eyebrow">Curadoria</span><h2>Instagram</h2><p>Cole apenas o link de um post ou Reel público. O conteúdo original do Instagram é renderizado no site, sem recadastrar foto, título ou legenda.</p></div>
+          <details className="admin-create-panel" open><summary><Plus size={18}/>Selecionar post do Instagram</summary><form className="form" onSubmit={addInstagram}>
+            <Field label="Link do post ou Reel" hint="Ex.: https://www.instagram.com/p/... ou /reel/..."><input name="post_url" type="url" required placeholder="https://www.instagram.com/p/..."/></Field>
+            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option><option value="about">Sobre</option><option value="both">Home e Sobre</option></select></Field>
+            <button className="btn btn-dark">Adicionar ao site</button>
           </form></details>
-          <div className="admin-editor-stack">{instagram.map(p=><article className="admin-content-card instagram-admin-card" key={p.id}>{p.cover_url&&<img src={p.cover_url} alt=""/>}<div><div className="admin-card-top"><span className="status-pill">{p.location}</span><button className="admin-icon-button" onClick={()=>toggleInstagram(p.id,!p.visible)}>{p.visible?<Eye size={18}/>:<EyeOff size={18}/>}</button></div><h3>{p.title||"Post do Instagram"}</h3><p>{p.caption}</p><a href={p.post_url} target="_blank" rel="noreferrer">Abrir publicação</a></div></article>)}</div>
+          <div className="admin-editor-stack">{instagram.map(p=><InstagramAdminEditor key={p.id} item={p} onSave={saveInstagram} onDelete={deleteInstagram}/>)}</div>
+          {!instagram.length&&<div className="admin-empty">Nenhum post selecionado. O post que estava cadastrado anteriormente foi removido.</div>}
         </div>}
       </section>}
 
