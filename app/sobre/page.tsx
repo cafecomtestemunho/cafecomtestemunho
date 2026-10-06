@@ -3,6 +3,7 @@ import{ArrowRight,Images,Instagram,BookHeart,HeartHandshake}from"lucide-react";
 import{createServerSupabaseClient}from"@/lib/supabase/server";
 import{Reveal}from"@/components/reveal";
 import{BrandMark}from"@/components/brand-mark";
+import{InstagramEmbed}from"@/components/instagram-embed";
 
 export const metadata={title:"Sobre"};
 
@@ -78,7 +79,7 @@ export default async function SobrePage(){
     {(instagram?.length||social?.url)&&<section className="section instagram-section">
       <div className="container">
         <Reveal className="section-heading-row"><div><div className="eyebrow">A história continua acontecendo</div><h2 className="section-title">@cafe_testemunho</h2></div>{social?.url&&<a className="text-link" href={social.url} target="_blank" rel="noreferrer">Acompanhar no Instagram <Instagram size={17}/></a>}</Reveal>
-        {instagram?.length?<div className="grid grid-3">{instagram.map((p,i)=><Reveal key={p.id} delay={i*80}><a className="instagram-card" href={p.post_url} target="_blank" rel="noreferrer">{p.cover_url?<img src={p.cover_url} alt=""/>:<div className="instagram-card-placeholder"><Instagram size={34}/></div>}<div><span>Instagram</span><h3>{p.title||"Publicação do Café"}</h3><p>{p.caption}</p></div></a></Reveal>)}</div>:null}
+        {instagram?.length?<div className="instagram-embed-grid">{instagram.map((p,i)=><Reveal key={p.id} delay={i*80}><InstagramEmbed url={p.post_url}/></Reveal>)}</div>:null}
       </div>
     </section>}
 
