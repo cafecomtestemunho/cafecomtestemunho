@@ -82,11 +82,27 @@ export function AdminClient({
     if(error){notify(error.message);return}
     setStory(story.map(x=>x.id===id?data:x));await audit("STORY_UPDATED","story_chapter",id);notify("Capítulo salvo.");
   }
+  async function deleteStory(id:string){
+    if(!window.confirm("Remover este capítulo definitivamente?"))return;
+    const{error}=await s.from("story_chapters").delete().eq("id",id);
+    if(error){notify(error.message);return}
+    setStory(current=>current.filter(x=>x.id!==id));await audit("STORY_DELETED","story_chapter",id);notify("Capítulo removido.");
+  }
   async function saveEvent(id:string,patch:AnyRow){
     const{data,error}=await s.from("events").update({...patch,updated_by:userId}).eq("id",id).select().single();
     if(error){notify(error.message);return null}
     setEvents(current=>current.map(x=>x.id===id?data:x));await audit("EVENT_UPDATED","event",id);notify("Etapa salva.");
     return data;
+  }
+  async function deleteEvent(id:string){
+    if(!window.confirm("Remover este evento e todo o conteúdo ligado a ele? Essa ação não pode ser desfeita."))return;
+    const{error}=await s.from("events").delete().eq("id",id);
+    if(error){notify(error.message);return}
+    setEvents(current=>current.filter(x=>x.id!==id));
+    setEventGuests(current=>current.filter(x=>x.event_id!==id));
+    setEventSchedule(current=>current.filter(x=>x.event_id!==id));
+    setEventFaqs(current=>current.filter(x=>x.event_id!==id));
+    setSelectedEventId(null);await audit("EVENT_DELETED","event",id);notify("Evento removido.");
   }
   async function addEventGuest(eventId:string,payload:AnyRow){
     const{data,error}=await s.from("event_guests").insert({...payload,event_id:eventId,sort_order:eventGuests.filter(x=>x.event_id===eventId).length*10+10}).select().single();
@@ -163,11 +179,35 @@ export function AdminClient({
     if(error){notify(error.message);return}
     setAlbums([data,...albums]);e.currentTarget.reset();notify("Álbum criado.");
   }
+  async function saveAlbum(id:string,patch:AnyRow){
+    const{data,error}=await s.from("photo_albums").update(patch).eq("id",id).select().single();
+    if(error){notify(error.message);return}
+    setAlbums(current=>current.map(x=>x.id===id?data:x));notify("Álbum salvo.");
+  }
+  async function deleteAlbum(id:string){
+    if(!window.confirm("Remover este álbum? As fotos continuarão na galeria geral."))return;
+    const{error}=await s.from("photo_albums").delete().eq("id",id);
+    if(error){notify(error.message);return}
+    setAlbums(current=>current.filter(x=>x.id!==id));
+    setPhotos(current=>current.map(x=>x.album_id===id?{...x,album_id:null}:x));notify("Álbum removido.");
+  }
   async function uploadPhoto(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();const form=e.currentTarget;const fd=new FormData(form);fd.set("featured",String(fd.get("featured")==="on"));notify("Enviando imagem...");
     const res=await fetch("/api/admin/photos",{method:"POST",body:fd});const payload=await res.json();
     if(!res.ok){notify(payload.error||"Não foi possível enviar a imagem.");return}
     setPhotos([payload.photo,...photos]);form.reset();notify("Foto enviada.");
+  }
+  async function savePhoto(id:string,patch:AnyRow){
+    const{data,error}=await s.from("media_assets").update(patch).eq("id",id).select().single();
+    if(error){notify(error.message);return}
+    setPhotos(current=>current.map(x=>x.id===id?data:x));notify("Foto atualizada.");
+  }
+  async function deletePhoto(id:string){
+    if(!window.confirm("Remover esta foto definitivamente?"))return;
+    const res=await fetch("/api/admin/photos",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+    const payload=await res.json();
+    if(!res.ok){notify(payload.error||"Não foi possível remover a foto.");return}
+    setPhotos(current=>current.filter(x=>x.id!==id));notify("Foto removida.");
   }
   async function addScripture(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();const fd=new FormData(e.currentTarget);
@@ -180,16 +220,31 @@ export function AdminClient({
     if(error){notify(error.message);return}
     setScriptures(scriptures.map(x=>x.id===id?data:x));notify("Palavra salva.");
   }
+  async function deleteScripture(id:string){
+    if(!window.confirm("Remover esta Palavra definitivamente?"))return;
+    const{error}=await s.from("scripture_spotlights").delete().eq("id",id);
+    if(error){notify(error.message);return}
+    setScriptures(current=>current.filter(x=>x.id!==id));notify("Palavra removida.");
+  }
   async function addInstagram(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();const fd=new FormData(e.currentTarget);
-    const{data,error}=await s.from("instagram_highlights").insert({post_url:String(fd.get("post_url")),title:String(fd.get("title")||""),caption:String(fd.get("caption")||""),cover_url:String(fd.get("cover_url")||"")||null,location:String(fd.get("location")),visible:true,sort_order:instagram.length*10+10}).select().single();
+    const post_url=String(fd.get("post_url")||"").trim();
+    if(!/^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels)\//i.test(post_url)){notify("Cole o link de um post ou Reel público do Instagram.");return}
+    const{data,error}=await s.from("instagram_highlights").insert({post_url,location:String(fd.get("location")||"home"),visible:true,sort_order:instagram.length*10+10,title:null,caption:null,cover_url:null}).select().single();
     if(error){notify(error.message);return}
-    setInstagram([...instagram,data]);e.currentTarget.reset();notify("Post adicionado.");
+    setInstagram(current=>[...current,data]);e.currentTarget.reset();notify("Post do Instagram adicionado.");
   }
-  async function toggleInstagram(id:string,visible:boolean){
-    const{data,error}=await s.from("instagram_highlights").update({visible}).eq("id",id).select().single();
+  async function saveInstagram(id:string,patch:AnyRow){
+    const{data,error}=await s.from("instagram_highlights").update(patch).eq("id",id).select().single();
     if(error){notify(error.message);return}
-    setInstagram(instagram.map(x=>x.id===id?data:x));
+    setInstagram(current=>current.map(x=>x.id===id?data:x));notify("Post atualizado.");
+  }
+  async function toggleInstagram(id:string,visible:boolean){await saveInstagram(id,{visible})}
+  async function deleteInstagram(id:string){
+    if(!window.confirm("Remover este post da curadoria do site? O post original no Instagram não será apagado."))return;
+    const{error}=await s.from("instagram_highlights").delete().eq("id",id);
+    if(error){notify(error.message);return}
+    setInstagram(current=>current.filter(x=>x.id!==id));notify("Post removido do site.");
   }
   async function saveSetting(key:string,value:AnyRow){
     const{data,error}=await s.from("site_settings").upsert({setting_key:key,value,updated_by:userId},{onConflict:"setting_key"}).select().single();
