@@ -16,7 +16,7 @@ type LibraryKey="photos"|"testimonials"|"scripture"|"instagram";
 
 const pages:{key:PageKey;label:string;description:string;sections:string[];special?:string}[]=[
   {key:"home",label:"Página inicial",description:"Hero, história, Palavra, encontro, fotos, testemunhos, Instagram e chamada final.",sections:["home_hero","home_intro","home_word","home_event","home_photos","home_testimonials","home_instagram","home_cta"]},
-  {key:"about",label:"Sobre",description:"Apresentação, história em capítulos, Palavra, memórias, testemunho fundador, Instagram e CTA.",sections:["about_mission","about_word","about_photos","about_testimony","about_instagram","about_cta"],special:"story"},
+  {key:"about",label:"Sobre",description:"Hero delicada, história em capítulos, Palavra, memórias, testemunho fundador e CTA.",sections:["about_mission","about_word","about_photos","about_testimony","about_cta"],special:"story"},
   {key:"agenda",label:"Agenda",description:"Hero, introdução e chamada da página de encontros.",sections:["agenda_hero","agenda_intro","agenda_cta"]},
   {key:"photos",label:"Fotos",description:"Hero, introdução e chamada da galeria de memórias.",sections:["photos_hero","photos_intro","photos_cta"]},
   {key:"testimonials",label:"Testemunhos",description:"Hero, introdução e chamada da página de testemunhos.",sections:["testimonials_hero","testimonials_intro","testimonials_cta"]},
@@ -400,7 +400,7 @@ export function AdminClient({
           <div className="admin-section-intro"><span className="eyebrow">Curadoria</span><h2>Instagram</h2><p>Cole apenas o link de um post ou Reel público. O conteúdo original do Instagram é renderizado no site, sem recadastrar foto, título ou legenda.</p></div>
           <details className="admin-create-panel" open><summary><Plus size={18}/>Selecionar post do Instagram</summary><form className="form" onSubmit={addInstagram}>
             <Field label="Link do post ou Reel" hint="Ex.: https://www.instagram.com/p/... ou /reel/..."><input name="post_url" type="url" required placeholder="https://www.instagram.com/p/..."/></Field>
-            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option><option value="about">Sobre</option><option value="both">Home e Sobre</option></select></Field>
+            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option></select></Field>
             <button className="btn btn-dark">Adicionar ao site</button>
           </form></details>
           <div className="admin-editor-stack">{instagram.map(p=><InstagramAdminEditor key={p.id} item={p} onSave={saveInstagram} onDelete={deleteInstagram}/>)}</div>
@@ -445,6 +445,7 @@ function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:E
   const isHomeHero=section.section_key==="home_hero";
   const isHomeIntro=section.section_key==="home_intro";
   const isHomeWord=section.section_key==="home_word";
+  const isInternalHero=["about_mission","agenda_hero","photos_hero","testimonials_hero","submit_testimonial_hero"].includes(section.section_key);
   const[t,setT]=useState(section.title||""),[sub,setSub]=useState(section.subtitle||""),[body,setBody]=useState(section.body||""),[visible,setVisible]=useState(section.visible!==false);
   const[image,setImage]=useState(section.image_url||""),[ctaLabel,setCtaLabel]=useState(section.cta_label||""),[ctaUrl,setCtaUrl]=useState(section.cta_url||"");
   const[heroLogo,setHeroLogo]=useState(section.settings?.logo_url||"");
@@ -464,6 +465,11 @@ function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:E
         <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
         <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)} placeholder="Ex.: Conheça a história"/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/sobre"/></Field></div>
+      </>:isInternalHero?<>
+        <Field label="Imagem de fundo da Hero" hint="Opcional. Use uma imagem delicada, sem texto, com o assunto principal afastado das bordas. A página aplica automaticamente o degradê para manter a leitura."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Ex.: Como tudo começou"/></Field>
+        <Field label="Título da Hero"><input value={t} onChange={e=>setT(e.target.value)} placeholder="Título curto e delicado"/></Field>
+        <Field label="Texto de apoio"><textarea value={body} onChange={e=>setBody(e.target.value)} placeholder="Um parágrafo curto para apresentar esta página."/></Field>
       </>:isHomeWord?<>
         <Field label="Logotipo desta seção" hint="Cadastre aqui a versão horizontal escura da logotipo. Ela aparece centralizada no final da seção Palavra para este tempo. Prefira PNG ou WebP com fundo transparente."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
       </>:isHomeIntro?<>
@@ -480,7 +486,7 @@ function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:E
       </>}
       {mode==="advanced"&&<div className="admin-advanced-box">
         <div className="admin-advanced-label"><SlidersHorizontal size={17}/><strong>Configurações avançadas</strong></div>
-        {!isHomeHero&&!isHomeIntro&&!isHomeWord&&<div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>}
+        {!isHomeHero&&!isHomeIntro&&!isHomeWord&&!isInternalHero&&<div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>}
         <div className="admin-two-col"><Field label="Ordem"><input type="number" value={order} onChange={e=>setOrder(e.target.value)}/></Field><Field label="Alinhamento"><select value={alignment} onChange={e=>setAlignment(e.target.value)}><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option></select></Field></div>
         <div className="admin-two-col"><Field label="Tema"><select value={theme} onChange={e=>setTheme(e.target.value)}><option value="default">Padrão</option><option value="light">Claro</option><option value="dark">Escuro</option><option value="warm">Acolhedor</option></select></Field><Field label="Fundo"><select value={background} onChange={e=>setBackground(e.target.value)}><option value="default">Padrão</option><option value="paper">Papel</option><option value="soft">Suave</option><option value="dark">Escuro</option><option value="image">Imagem</option></select></Field></div>
         <Field label="Microanimação"><select value={motion} onChange={e=>setMotion(e.target.value)}><option value="fade">Entrada suave</option><option value="rise">Subir suavemente</option><option value="none">Sem animação</option></select></Field>
