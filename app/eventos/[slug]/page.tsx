@@ -38,7 +38,6 @@ export default async function EventoPage({params}:{params:Promise<{slug:string}>
                 <div className="eyebrow">Encontro</div>
                 {event.event_theme&&<span className="event-theme-pill event-theme-pill-light">{event.event_theme}</span>}
               </div>
-              <EventShareButton title={event.title} text={event.summary||undefined}/>
             </div>
             <h1>{event.title}</h1>
             {event.summary&&<p>{event.summary}</p>}
