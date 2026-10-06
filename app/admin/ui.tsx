@@ -402,125 +402,199 @@ function StoryEditor({chapter,mode,onSave,notify}:{chapter:AnyRow;mode:EditMode;
   </div></details>
 }
 
-function EventEditor({
-  event,mode,defaultOpen,onSave,notify,guests,schedule,faqs,
+function EventWizard({
+  event,mode,setMode,onBack,onSave,notify,guests,schedule,faqs,
   onAddGuest,onUpdateGuest,onDeleteGuest,onAddSchedule,onUpdateSchedule,onDeleteSchedule,onAddFaq,onUpdateFaq,onDeleteFaq
 }:{
-  event:AnyRow;mode:EditMode;defaultOpen?:boolean;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void;
+  event:AnyRow;mode:EditMode;setMode:(m:EditMode)=>void;onBack:()=>void;
+  onSave:(id:string,patch:AnyRow)=>Promise<AnyRow|null>;notify:(m:string)=>void;
   guests:AnyRow[];schedule:AnyRow[];faqs:AnyRow[];
   onAddGuest:(eventId:string,payload:AnyRow)=>void;onUpdateGuest:(id:string,patch:AnyRow)=>void;onDeleteGuest:(id:string)=>void;
   onAddSchedule:(eventId:string,payload:AnyRow)=>void;onUpdateSchedule:(id:string,patch:AnyRow)=>void;onDeleteSchedule:(id:string)=>void;
   onAddFaq:(eventId:string,payload:AnyRow)=>void;onUpdateFaq:(id:string,patch:AnyRow)=>void;onDeleteFaq:(id:string)=>void;
 }){
   const[state,setState]=useState<AnyRow>({...event});
+  const initialStep=Math.max(1,Math.min(8,Number(event.wizard_step||1)));
+  const[step,setStep]=useState(initialStep);
+  const[saving,setSaving]=useState(false);
   const set=(key:string,value:any)=>setState((v:AnyRow)=>({...v,[key]:value}));
   const startParts=splitLocalDateTime(state.starts_at);
   const endParts=splitLocalDateTime(state.ends_at);
   const admission=state.admission_type||"FREE";
+  const completed=state.wizard_completed||{};
+
+  const steps=[
+    ["Identidade","identity"],["Data e local","datetime_location"],["Público e entrada","audience_admission"],["Participações","participants"],
+    ["Programação","schedule"],["Conteúdo","content"],["Extras","extras"],["Revisão","review"]
+  ] as const;
 
   async function uploadCover(file:File){
     const fd=new FormData();fd.set("file",file);fd.set("folder","eventos/capas");notify("Enviando capa...");
     const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();
     if(!res.ok){notify(data.error||"Falha no upload.");return}
-    set("cover_url",data.url);notify("Capa enviada. Salve o evento para aplicar.");
+    set("cover_url",data.url);notify("Capa enviada. Ela será confirmada ao salvar esta etapa.");
   }
-  function setStartDate(date:string){set("starts_at",combineLocalDateTime(date,startParts.time||"19:00"))}
-  function setStartTime(time:string){set("starts_at",combineLocalDateTime(startParts.date||todayInput(),time))}
-  function setEndDate(date:string){set("ends_at",date?combineLocalDateTime(date,endParts.time||startParts.time||"21:00"):null)}
+  function setStartDate(date:string){set("starts_at",date?combineLocalDateTime(date,startParts.time||"14:00"):null)}
+  function setStartTime(time:string){set("starts_at",time?combineLocalDateTime(startParts.date||todayInput(),time):null)}
+  function setEndDate(date:string){set("ends_at",date?combineLocalDateTime(date,endParts.time||startParts.time||"18:00"):null)}
   function setEndTime(time:string){set("ends_at",time?combineLocalDateTime(endParts.date||startParts.date||todayInput(),time):null)}
 
-  return <details className="admin-section-card event-editor-card" defaultOpen={defaultOpen}>
-    <summary><div><span>{event.title}</span><small>{event.status} · {guests.length} participações · {schedule.length} itens na programação</small></div><ChevronRight size={18}/></summary>
-    <div className="admin-section-body event-editor-body">
-      <div className="event-form-section">
-        <div className="event-form-heading"><ImageIcon size={19}/><div><strong>Identidade do evento</strong><span>O que aparece primeiro na página pública.</span></div></div>
-        <Field label="Título do evento"><input value={state.title||""} onChange={e=>set("title",e.target.value)}/></Field>
-        <Field label="Tema ou chamada opcional"><input value={state.event_theme||""} onChange={e=>set("event_theme",e.target.value)} placeholder="Ex.: Uma tarde de fé, louvor e testemunhos"/></Field>
-        <Field label="Resumo curto"><textarea value={state.summary||""} onChange={e=>set("summary",e.target.value)} placeholder="Explique em poucas linhas o que a participante vai viver nesse encontro."/></Field>
-        <Field label="Capa do evento" hint="Recomendado: 1600 × 900 px (16:9), JPG ou WebP. Mantenha rostos e textos importantes no centro da imagem.">
-          <ImagePicker value={state.cover_url||""} onChange={v=>set("cover_url",v)} onUpload={uploadCover}/>
-        </Field>
-      </div>
+  function validateCurrent(){
+    if(step===1&&!String(state.title||"").trim()){notify("Informe o título do evento.");return false}
+    if(step===2&&!state.starts_at){notify("Informe a data e o horário do evento.");return false}
+    if(step===2&&!String(state.venue||"").trim()){notify("Informe o local do evento.");return false}
+    if(step===3&&admission==="DONATION"&&!String(state.donation_item||"").trim()){notify("Informe qual doação será solicitada.");return false}
+    if(step===3&&admission==="PAID"&&(state.admission_amount==null||String(state.admission_amount)==="")){notify("Informe o valor da entrada.");return false}
+    if(step===3&&admission==="REGISTRATION"&&!String(state.registration_url||"").trim()){notify("Informe o link de inscrição.");return false}
+    if(step===4&&!guests.length){notify("Cadastre pelo menos uma participação antes de continuar.");return false}
+    return true;
+  }
+  function patchForStep(){
+    const common={wizard_completed:{...completed,[steps[step-1][1]]:true}};
+    if(step===1)return{...common,title:state.title,event_theme:state.event_theme||null,summary:state.summary||null,cover_url:state.cover_url||null};
+    if(step===2)return{...common,starts_at:state.starts_at||null,venue:state.venue||null,address:state.address||null,city:state.city||null,reference:state.reference||null};
+    if(step===3)return{...common,audience:state.audience||null,age_range:state.age_range||null,admission_type:admission,admission_label:state.admission_label||null,admission_amount:state.admission_amount===""||state.admission_amount==null?null:Number(String(state.admission_amount).replace(",",".")),donation_item:state.donation_item||null,registration_required:admission==="REGISTRATION"?state.registration_required!==false:false,registration_url:state.registration_url||null,entry_info:state.entry_info||null};
+    if(step===6)return{...common,description:state.description||null,verse_reference:state.verse_reference||null,verse_text:state.verse_text||null};
+    if(step===7)return{...common,ends_at:state.ends_at||null,map_url:state.map_url||null,slug:state.slug||event.slug};
+    return common;
+  }
+  async function saveAndGo(target:number){
+    if(saving)return;
+    if(!validateCurrent())return;
+    setSaving(true);
+    const next=Math.max(1,Math.min(8,target));
+    const saved=await onSave(event.id,{...patchForStep(),wizard_step:next});
+    setSaving(false);
+    if(!saved)return;
+    setState(saved);setStep(next);window.scrollTo({top:0,behavior:"smooth"});
+  }
+  async function saveDraft(){
+    if(saving)return;setSaving(true);
+    const saved=await onSave(event.id,{...patchForStep(),wizard_step:step,status:"RASCUNHO"});
+    setSaving(false);if(saved)setState(saved);
+  }
+  async function publishEvent(){
+    const missing:string[]=[];
+    if(!String(state.title||"").trim())missing.push("título");
+    if(!state.starts_at)missing.push("data e horário");
+    if(!String(state.venue||"").trim())missing.push("local");
+    if(!String(state.city||"").trim())missing.push("cidade");
+    if(!guests.length)missing.push("participações");
+    if(admission==="DONATION"&&!String(state.donation_item||"").trim())missing.push("doação");
+    if(missing.length){notify("Antes de publicar, complete: "+missing.join(", ")+".");return}
+    setSaving(true);
+    const finalCompleted={...completed,review:true};
+    const saved=await onSave(event.id,{status:"PUBLICADO",published_at:state.published_at||new Date().toISOString(),wizard_step:8,wizard_completed:finalCompleted});
+    setSaving(false);if(saved){setState(saved);notify("Evento publicado.");}
+  }
+  async function jumpTo(target:number){await saveAndGo(target)}
 
-      <div className="event-form-section">
-        <div className="event-form-heading"><Clock3 size={19}/><div><strong>Data e horário</strong><span>Data e hora são campos separados para funcionar melhor no celular.</span></div></div>
-        <div className="event-date-grid">
-          <Field label="Data"><input type="date" value={startParts.date} onChange={e=>setStartDate(e.target.value)}/></Field>
-          <Field label="Horário"><input type="time" value={startParts.time} onChange={e=>setStartTime(e.target.value)}/></Field>
-        </div>
-        <Field label="Status"><select value={state.status||"RASCUNHO"} onChange={e=>set("status",e.target.value)}><option value="RASCUNHO">Rascunho</option><option value="AGENDADO">Agendado</option><option value="PUBLICADO">Publicado</option><option value="ENCERRADO">Encerrado</option><option value="CANCELADO">Cancelado</option><option value="ARQUIVADO">Arquivado</option></select></Field>
-      </div>
+  return <div className="event-wizard">
+    <div className="event-wizard-top">
+      <button className="admin-back" onClick={onBack}><ChevronLeft size={18}/>Eventos</button>
+      <ModeSwitch mode={mode} setMode={setMode}/>
+    </div>
 
-      <div className="event-form-section">
-        <div className="event-form-heading"><MapPin size={19}/><div><strong>Local e público</strong><span>O endereço é cadastrado uma única vez aqui.</span></div></div>
-        <Field label="Nome do local"><input value={state.venue||""} onChange={e=>set("venue",e.target.value)} placeholder="Ex.: Salão de Eventos..."/></Field>
+    <div className="event-wizard-heading">
+      <div><span className="eyebrow">Cadastro por etapas</span><h2>{state.title||"Novo evento"}</h2><p>Cada etapa é gravada no banco antes de você avançar. Participações, programação e FAQ são salvos individualmente no momento em que você adiciona.</p></div>
+      <a className="admin-preview-button" href={"/eventos/"+state.slug} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span>Prévia</span></a>
+    </div>
+
+    <div className="event-wizard-progress"><div><strong>Etapa {step} de 8</strong><span>{Math.round(step/8*100)}%</span></div><div className="event-wizard-progress-bar"><span style={{width:(step/8*100)+"%"}}/></div></div>
+
+    <div className="event-wizard-steps" aria-label="Etapas do cadastro">
+      {steps.map(([label,key],i)=><button key={key} className={(step===i+1?"active ":"")+(completed[key]?"done":"")} onClick={()=>jumpTo(i+1)}><span>{i+1}</span><small>{label}</small></button>)}
+    </div>
+
+    <section className="event-wizard-panel">
+      {step===1&&<>
+        <WizardHeading icon={<ImageIcon size={20}/>} title="Identidade do evento" text="Defina como o encontro será apresentado na página pública."/>
+        <Field label="Título do evento"><input value={state.title||""} onChange={e=>set("title",e.target.value)} placeholder="Ex.: Café com Testemunho"/></Field>
+        <Field label="Chamada / tema"><input value={state.event_theme||""} onChange={e=>set("event_theme",e.target.value)} placeholder="Ex.: Um encontro de fé e louvor!"/></Field>
+        <Field label="Resumo"><textarea value={state.summary||""} onChange={e=>set("summary",e.target.value)} placeholder="Uma chamada curta para o evento."/></Field>
+        <Field label="Capa do evento" hint="Use 1600 × 900 px (16:9), JPG ou WebP. Mantenha rostos e textos importantes na região central para o recorte no celular."><ImagePicker value={state.cover_url||""} onChange={v=>set("cover_url",v)} onUpload={uploadCover}/></Field>
+      </>}
+
+      {step===2&&<>
+        <WizardHeading icon={<Clock3 size={20}/>} title="Data e local" text="Data e hora ficam separadas para funcionar melhor no celular. O endereço aparece apenas nesta etapa."/>
+        <div className="event-date-grid"><Field label="Data"><input type="date" value={startParts.date} onChange={e=>setStartDate(e.target.value)}/></Field><Field label="Horário"><input type="time" value={startParts.time} onChange={e=>setStartTime(e.target.value)}/></Field></div>
+        <Field label="Nome do local"><input value={state.venue||""} onChange={e=>set("venue",e.target.value)} placeholder="Ex.: Casa da Cultura"/></Field>
         <Field label="Endereço completo"><input value={state.address||""} onChange={e=>set("address",e.target.value)} placeholder="Rua, número e bairro"/></Field>
-        <div className="admin-two-col">
-          <Field label="Cidade"><input value={state.city||""} onChange={e=>set("city",e.target.value)} placeholder="Telêmaco Borba"/></Field>
-          <Field label="Ponto de referência"><input value={state.reference||""} onChange={e=>set("reference",e.target.value)} placeholder="Opcional"/></Field>
-        </div>
-        <div className="admin-two-col">
-          <Field label="Público"><input value={state.audience||""} onChange={e=>set("audience",e.target.value)} placeholder="Ex.: Mulheres"/></Field>
-          <Field label="Faixa etária"><input value={state.age_range||""} onChange={e=>set("age_range",e.target.value)} placeholder="Ex.: Livre, 16+, adultas"/></Field>
-        </div>
-      </div>
+        <div className="admin-two-col"><Field label="Cidade"><input value={state.city||""} onChange={e=>set("city",e.target.value)} placeholder="Telêmaco Borba"/></Field><Field label="Ponto de referência"><input value={state.reference||""} onChange={e=>set("reference",e.target.value)} placeholder="Opcional"/></Field></div>
+      </>}
 
-      <div className="event-form-section">
-        <div className="event-form-heading"><Ticket size={19}/><div><strong>Entrada e participação</strong><span>Defina claramente o que a pessoa precisa para participar.</span></div></div>
-        <Field label="Tipo de entrada"><select value={admission} onChange={e=>set("admission_type",e.target.value)}>
-          <option value="FREE">Gratuita</option>
-          <option value="PAID">Paga</option>
-          <option value="DONATION">Doação / contribuição</option>
-          <option value="REGISTRATION">Inscrição obrigatória</option>
-        </select></Field>
-        {admission==="PAID"&&<div className="admin-two-col"><Field label="Valor (R$)"><input inputMode="decimal" value={state.admission_amount??""} onChange={e=>set("admission_amount",e.target.value)} placeholder="0,00"/></Field><Field label="Como exibir"><input value={state.admission_label||""} onChange={e=>set("admission_label",e.target.value)} placeholder="Ex.: Ingresso antecipado"/></Field></div>}
+      {step===3&&<>
+        <WizardHeading icon={<Ticket size={20}/>} title="Público e entrada" text="Esses campos viram informações visíveis e objetivas na página do evento."/>
+        <div className="admin-two-col"><Field label="Público"><input value={state.audience||""} onChange={e=>set("audience",e.target.value)} placeholder="Ex.: Mulheres"/></Field><Field label="Faixa etária"><input value={state.age_range||""} onChange={e=>set("age_range",e.target.value)} placeholder="Ex.: Livre, 16+, adultas"/></Field></div>
+        <Field label="Tipo de entrada"><select value={admission} onChange={e=>set("admission_type",e.target.value)}><option value="FREE">Gratuita</option><option value="PAID">Paga</option><option value="DONATION">Doação / contribuição</option><option value="REGISTRATION">Inscrição obrigatória</option></select></Field>
         {admission==="DONATION"&&<Field label="O que levar / doar"><input value={state.donation_item||""} onChange={e=>set("donation_item",e.target.value)} placeholder="Ex.: 1 kg de alimento não perecível"/></Field>}
-        {admission==="REGISTRATION"&&<><Field label="Link de inscrição"><input type="url" value={state.registration_url||""} onChange={e=>set("registration_url",e.target.value)} placeholder="https://..."/></Field><label className="admin-check"><input type="checkbox" checked={state.registration_required!==false} onChange={e=>set("registration_required",e.target.checked)}/>Inscrição obrigatória</label></>}
-        <Field label="Observação sobre a entrada"><textarea value={state.entry_info||""} onChange={e=>set("entry_info",e.target.value)} placeholder="Ex.: Entregue a doação na recepção. Vagas limitadas."/></Field>
-      </div>
+        {admission==="PAID"&&<div className="admin-two-col"><Field label="Valor (R$)"><input inputMode="decimal" value={state.admission_amount??""} onChange={e=>set("admission_amount",e.target.value)} placeholder="0,00"/></Field><Field label="Como exibir"><input value={state.admission_label||""} onChange={e=>set("admission_label",e.target.value)} placeholder="Ex.: Ingresso antecipado"/></Field></div>}
+        {admission==="REGISTRATION"&&<><Field label="Link da inscrição"><input type="url" value={state.registration_url||""} onChange={e=>set("registration_url",e.target.value)}/></Field><label className="admin-check"><input type="checkbox" checked={state.registration_required!==false} onChange={e=>set("registration_required",e.target.checked)}/>Inscrição obrigatória</label></>}
+        <Field label="Orientação sobre a entrada"><textarea value={state.entry_info||""} onChange={e=>set("entry_info",e.target.value)} placeholder="Ex.: Entregue a doação na recepção."/></Field>
+      </>}
 
-      <div className="event-form-section">
-        <div className="event-form-heading"><BookHeart size={19}/><div><strong>Sobre o encontro</strong><span>Conteúdo que ajuda a visitante a entender a proposta do evento.</span></div></div>
-        <Field label="Descrição completa"><textarea value={state.description||""} onChange={e=>set("description",e.target.value)} placeholder="Descreva o propósito, o que vai acontecer e qualquer orientação importante."/></Field>
-      </div>
-
-      <div className="event-form-section">
-        <div className="event-form-heading"><UsersRound size={19}/><div><strong>Quem vai participar</strong><span>Ministração, pregação, louvor, testemunhos e outras participações.</span></div></div>
+      {step===4&&<>
+        <WizardHeading icon={<UsersRound size={20}/>} title="Participações" text="Cadastre todas as pessoas que vão ministrar, pregar, cantar, testemunhar ou participar do encontro."/>
         <GuestCreate eventId={event.id} onAdd={onAddGuest} notify={notify}/>
         <div className="event-nested-list">{guests.map(g=><GuestEditor key={g.id} guest={g} onSave={onUpdateGuest} onDelete={onDeleteGuest} notify={notify}/>)}</div>
-      </div>
+        {!guests.length&&<div className="wizard-empty-note">Adicione pelo menos uma participação para concluir esta etapa.</div>}
+      </>}
 
-      <div className="event-form-section">
-        <div className="event-form-heading"><Clock3 size={19}/><div><strong>Programação</strong><span>Monte a sequência do encontro: recepção, louvor, pregação, ministração e encerramento.</span></div></div>
+      {step===5&&<>
+        <WizardHeading icon={<Clock3 size={20}/>} title="Programação" text="Se a sequência já estiver definida, organize os momentos do encontro. Você pode deixar esta etapa sem itens e completar depois."/>
         <ScheduleCreate eventId={event.id} onAdd={onAddSchedule}/>
         <div className="event-nested-list">{schedule.map(item=><ScheduleEditor key={item.id} item={item} onSave={onUpdateSchedule} onDelete={onDeleteSchedule}/>)}</div>
-      </div>
+        {!schedule.length&&<div className="wizard-empty-note">Programação ainda não definida. Você pode continuar e voltar depois.</div>}
+      </>}
 
-      {mode==="advanced"&&<div className="event-form-section advanced">
-        <div className="event-form-heading"><SlidersHorizontal size={19}/><div><strong>Avançado</strong><span>Configurações complementares e técnicas. Os campos básicos não se repetem aqui.</span></div></div>
-        <Field label="Slug da página"><input value={state.slug||""} onChange={e=>set("slug",slugifyLocal(e.target.value))}/></Field>
-        <div className="event-date-grid">
-          <Field label="Data de término"><input type="date" value={endParts.date} onChange={e=>setEndDate(e.target.value)}/></Field>
-          <Field label="Horário de término"><input type="time" value={endParts.time} onChange={e=>setEndTime(e.target.value)}/></Field>
-        </div>
-        <Field label="Link do mapa"><input type="url" value={state.map_url||""} onChange={e=>set("map_url",e.target.value)} placeholder="Google Maps ou outro mapa"/></Field>
-        <div className="admin-two-col"><Field label="Referência bíblica"><input value={state.verse_reference||""} onChange={e=>set("verse_reference",e.target.value)} placeholder="Ex.: Salmos 126:5"/></Field><Field label="Versículo"><input value={state.verse_text||""} onChange={e=>set("verse_text",e.target.value)}/></Field></div>
-        <div className="event-faq-block">
-          <strong>Dúvidas frequentes</strong>
-          <FaqCreate eventId={event.id} onAdd={onAddFaq}/>
-          <div className="event-nested-list">{faqs.map(item=><FaqEditor key={item.id} item={item} onSave={onUpdateFaq} onDelete={onDeleteFaq}/>)}</div>
-        </div>
-      </div>}
+      {step===6&&<>
+        <WizardHeading icon={<BookHeart size={20}/>} title="Conteúdo da página" text="Aqui fica o texto principal do encontro e, se houver, uma Palavra específica para esta edição."/>
+        <Field label="Descrição completa"><textarea value={state.description||""} onChange={e=>set("description",e.target.value)} placeholder="Conte o propósito do encontro, o que vai acontecer e o convite para participar."/></Field>
+        <div className="event-content-tip"><strong>Texto curto x descrição</strong><span>O resumo aparece como chamada. A descrição é o texto mais completo da página do evento.</span></div>
+        <Field label="Referência bíblica opcional"><input value={state.verse_reference||""} onChange={e=>set("verse_reference",e.target.value)} placeholder="Ex.: Salmos 126:5"/></Field>
+        <Field label="Versículo opcional"><textarea value={state.verse_text||""} onChange={e=>set("verse_text",e.target.value)}/></Field>
+      </>}
 
-      <button className="admin-save-button event-save" onClick={()=>onSave(event.id,{
-        ...state,
-        admission_amount:state.admission_amount===""||state.admission_amount==null?null:Number(String(state.admission_amount).replace(",",".")),
-        registration_required:admission==="REGISTRATION"?state.registration_required!==false:false,
-        published_at:state.status==="PUBLICADO"?(state.published_at||new Date().toISOString()):state.published_at
-      })}><Save size={18}/>Salvar evento</button>
-    </div>
-  </details>
+      {step===7&&<>
+        <WizardHeading icon={<SlidersHorizontal size={20}/>} title="Informações extras" text="Complete somente o que fizer sentido para este encontro."/>
+        <div className="event-faq-block"><strong>Dúvidas frequentes</strong><FaqCreate eventId={event.id} onAdd={onAddFaq}/><div className="event-nested-list">{faqs.map(item=><FaqEditor key={item.id} item={item} onSave={onUpdateFaq} onDelete={onDeleteFaq}/>)}</div></div>
+        {mode==="advanced"&&<div className="admin-advanced-box">
+          <div className="admin-advanced-label"><SlidersHorizontal size={17}/><strong>Configurações avançadas</strong></div>
+          <div className="event-date-grid"><Field label="Data de término"><input type="date" value={endParts.date} onChange={e=>setEndDate(e.target.value)}/></Field><Field label="Horário de término"><input type="time" value={endParts.time} onChange={e=>setEndTime(e.target.value)}/></Field></div>
+          <Field label="Link do mapa"><input type="url" value={state.map_url||""} onChange={e=>set("map_url",e.target.value)} placeholder="Google Maps ou outro serviço"/></Field>
+          <Field label="Slug da página"><input value={state.slug||""} onChange={e=>set("slug",slugifyLocal(e.target.value))}/></Field>
+        </div>}
+      </>}
+
+      {step===8&&<>
+        <WizardHeading icon={<Save size={20}/>} title="Revisão e publicação" text="Confira o que já está cadastrado antes de publicar."/>
+        <div className="event-review-grid">
+          <ReviewItem label="Evento" value={state.title||"Não informado"}/>
+          <ReviewItem label="Data" value={state.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"long",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(state.starts_at)):"Não informada"}/>
+          <ReviewItem label="Local" value={[state.venue,state.city].filter(Boolean).join(" · ")||"Não informado"}/>
+          <ReviewItem label="Entrada" value={admission==="DONATION"?(state.donation_item||"Doação"):admission==="PAID"?(state.admission_label||("R$ "+state.admission_amount)):admission==="REGISTRATION"?"Inscrição obrigatória":"Gratuita"}/>
+          <ReviewItem label="Participações" value={guests.length?guests.map(g=>g.name+" — "+g.role_label).join(" · "):"Nenhuma cadastrada"}/>
+          <ReviewItem label="Programação" value={schedule.length?schedule.length+" itens cadastrados":"Ainda não definida"}/>
+          <ReviewItem label="Capa" value={state.cover_url?"Cadastrada":"Ainda não cadastrada"}/>
+          <ReviewItem label="Status atual" value={state.status||"RASCUNHO"}/>
+        </div>
+        <div className="event-review-actions">
+          <button className="btn btn-secondary" disabled={saving} onClick={saveDraft}>Salvar como rascunho</button>
+          <a className="btn btn-secondary" href={"/eventos/"+state.slug} target="_blank" rel="noreferrer">Visualizar página</a>
+          <button className="btn btn-dark" disabled={saving} onClick={publishEvent}>{saving?"Salvando...":"Publicar evento"}</button>
+        </div>
+      </>}
+    </section>
+
+    {step<8&&<div className="event-wizard-actions">
+      <button className="wizard-back-button" disabled={saving} onClick={()=>step===1?onBack():saveAndGo(step-1)}><ChevronLeft size={18}/>{step===1?"Sair":"Voltar"}</button>
+      <button className="wizard-save-button" disabled={saving} onClick={()=>saveAndGo(step+1)}>{saving?"Salvando...":"Salvar e continuar"}<ChevronRight size={18}/></button>
+    </div>}
+  </div>
 }
+
+function WizardHeading({icon,title,text}:{icon:React.ReactNode;title:string;text:string}){return <div className="wizard-heading">{icon}<div><h3>{title}</h3><p>{text}</p></div></div>}
+function ReviewItem({label,value}:{label:string;value:string}){return <div className="event-review-item"><span>{label}</span><strong>{value}</strong></div>}
 
 const guestRoles=[
   ["MINISTRATION","Ministração"],["PREACHING","Pregação"],["WORSHIP","Louvor"],["TESTIMONY","Testemunho"],
