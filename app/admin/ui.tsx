@@ -212,7 +212,7 @@ export function AdminClient({
 
   return <main className="admin-mobile-shell">
     <div className="admin-mobile-content">
-      <header className="admin-page-heading">
+      <header className={"admin-page-heading "+(tab==="events"&&selectedEventId?"is-editor":"")}>
         <div>
           <span className="admin-kicker">Café com Testemunho</span>
           <h1>{tab==="dashboard"?"Painel":tab==="pages"?(currentPage?.label||"Páginas"):tab==="events"?"Eventos":tab==="library"?"Biblioteca":"Ajustes"}</h1>
