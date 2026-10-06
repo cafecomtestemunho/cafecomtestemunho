@@ -1278,3 +1278,52 @@
 @media(prefers-reduced-motion:reduce){
   .home-instagram-loading span{animation:none}
 }
+
+
+/* Scripture section readability + configured logo */
+.home3-word-reflection{
+  color:#5d4a3c;
+}
+.home3-word-logo-wrap{
+  width:100%;
+  display:flex;
+  justify-content:center;
+  margin-top:clamp(64px,10vw,108px);
+  opacity:0;
+  filter:blur(4px);
+  transform:translateY(10px);
+  transition:opacity 1.05s ease,filter 1.05s ease,transform 1.05s cubic-bezier(.22,.75,.25,1);
+}
+.home3-word.is-visible .home3-word-logo-wrap{
+  opacity:1;
+  filter:blur(0);
+  transform:none;
+}
+.home3-word-logo{
+  display:block;
+  width:min(180px,42vw);
+  max-height:130px;
+  object-fit:contain;
+  opacity:.9;
+  filter:drop-shadow(0 8px 24px rgba(110,72,42,.08));
+}
+@media(max-width:820px){
+  .home3-word-reflection{
+    color:#5f4b3d;
+  }
+  .home3-word-logo-wrap{
+    margin-top:72px;
+  }
+  .home3-word-logo{
+    width:min(150px,40vw);
+    max-height:112px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .home3-word-logo-wrap{
+    opacity:1!important;
+    filter:none!important;
+    transform:none!important;
+    transition:none!important;
+  }
+}
