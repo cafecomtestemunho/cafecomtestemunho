@@ -35,7 +35,7 @@ export default async function HomePage(){
    <Reveal className="home3-hero-copy" delay={90}><span className="home3-kicker">{hero?.subtitle||"Fé · acolhimento · testemunho"}</span><h1>{hero?.title&&hero.title!=="Café com Testemunho"?hero.title:"Um lugar para ouvir, acolher e caminhar juntas."}</h1><p>{hero?.body??"Mulheres reunidas para compartilhar histórias, fortalecer a fé e lembrar que nenhum capítulo precisa ser vivido sozinho."}</p><div className="home3-hero-actions"><Link href={hero?.cta_url||"/sobre"}>{hero?.cta_label||"Conheça a história"} <ArrowRight size={17}/></Link><Link href="/agenda">Próximos encontros</Link></div></Reveal>
   </div></header>
   <main id="home-content" className="home3-main">
-   {scripture&&<CinematicScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection}/>}
+   {scripture&&<CinematicScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} logoUrl={brand.logo_url} brandName={brand.name}/>} 
    {intro?.visible!==false&&<section className={"home3-story "+(intro?.image_url?"has-image":"")} style={storyBackground}>
     <div className="home3-story-shade" aria-hidden="true"/>
     <div className="container home3-story-grid">
