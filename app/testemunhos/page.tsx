@@ -7,10 +7,11 @@ export const metadata={title:"Testemunhos"};
 
 export default async function TestemunhosPage(){
   const s=await createServerSupabaseClient();
-  const[{data:items},{data:hero},{data:intro}]=await Promise.all([
+  const[{data:items},{data:hero},{data:intro},{data:cta}]=await Promise.all([
     s.from("testimonial_publications").select("slug,public_title,public_excerpt,public_display_name,published_at").not("published_at","is",null).order("published_at",{ascending:false}),
     s.from("institutional_sections").select("*").eq("section_key","testimonials_hero").maybeSingle(),
-    s.from("institutional_sections").select("*").eq("section_key","testimonials_intro").maybeSingle()
+    s.from("institutional_sections").select("*").eq("section_key","testimonials_intro").maybeSingle(),
+    s.from("institutional_sections").select("*").eq("section_key","testimonials_cta").maybeSingle()
   ]);
   const founder=items?.find(x=>x.slug==="como-surgiu-o-cafe-com-testemunho")||items?.[0];
   const others=items?.filter(x=>x.slug!==founder?.slug)||[];
@@ -23,5 +24,6 @@ export default async function TestemunhosPage(){
       <div className="testimony-list">{others.map((t,i)=><Reveal key={t.slug} delay={Math.min(i*45,220)}><article className="testimony-quote"><Quote size={22}/><div><h3>{t.public_title}</h3><p>{t.public_excerpt}</p><small>{t.public_display_name}</small><Link href={"/testemunhos/"+t.slug}>Ler testemunho <ArrowRight size={15}/></Link></div></article></Reveal>)}</div>
       {!items?.length&&<div className="inner-empty">Os testemunhos aprovados aparecerão aqui.</div>}
     </div></section>
+    {cta?.visible!==false&&cta?.title&&<section className="inner-mini-cta"><div className="container inner-narrow"><Reveal><div className="inner-mini-cta-copy"><div className="inner-kicker">{cta.subtitle||"Sua história também importa"}</div><h2>{cta.title}</h2>{cta.body&&<p>{cta.body}</p>}<Link className="inner-btn dark" href={cta.cta_url||"/enviar-testemunho"}>{cta.cta_label||"Compartilhar meu testemunho"} <ArrowRight size={15}/></Link></div></Reveal></div></section>}
   </main>
 }
