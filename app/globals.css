@@ -552,3 +552,60 @@
   .testimonial-reading p{font-size:1rem;line-height:1.72}
   .testimonial-form{padding:20px;border-radius:20px}
 }
+
+
+/* Small managed closing blocks for internal pages */
+.inner-mini-cta{
+  position:relative;overflow:hidden;padding:58px 0 104px;background:#f1dfcc;
+}
+.inner-mini-cta:after{
+  content:"";position:absolute;right:-80px;bottom:-130px;width:250px;height:330px;
+  background:url("/word-botanical.svg") center/contain no-repeat;opacity:.08;pointer-events:none;
+}
+.inner-mini-cta-copy{
+  width:min(100%,640px);margin:0 auto;text-align:center;padding:30px 32px;border-radius:22px;
+  background:rgba(255,250,245,.72);border:1px solid rgba(59,31,13,.09);box-shadow:0 14px 38px rgba(59,31,13,.055);
+}
+.inner-mini-cta-copy h2{
+  margin:.45rem auto .72rem;font-family:Georgia,serif;font-size:clamp(1.9rem,4vw,2.7rem);
+  font-weight:400;line-height:1.04;color:#3b1f0d;text-wrap:balance;
+}
+.inner-mini-cta-copy p{max-width:520px;margin:0 auto;color:#705b4d;font-size:.9rem;line-height:1.62}
+.inner-mini-cta-copy .inner-btn{margin-top:20px}
+
+/* Admin — clearer page editing for redesigned sections */
+.admin-page-editor{display:grid;gap:12px;min-width:0}
+.admin-page-editor .admin-section-intro.compact{
+  margin:0;padding:14px 15px;border:1px solid var(--line);border-radius:16px;background:#fffaf5;box-shadow:0 8px 24px rgba(59,31,13,.045)
+}
+.admin-page-editor .admin-section-intro.compact h2{font-size:1.45rem;margin:.2rem 0 .3rem}
+.admin-page-editor .admin-section-intro.compact p{font-size:.75rem;line-height:1.4;margin:0}
+.admin-editor-stack{gap:10px}
+.admin-section-card{border-radius:16px;overflow:hidden}
+.admin-section-card>summary{min-height:54px;padding:13px 14px}
+.admin-section-card>summary div span{font-size:.86rem}
+.admin-section-card>summary div small{font-size:.65rem}
+.admin-section-body{gap:11px;padding:0 14px 14px}
+.admin-section-body .field{gap:5px}
+.admin-section-body .field label{font-size:.72rem}
+.admin-section-body .field input,.admin-section-body .field textarea,.admin-section-body .field select{font-size:16px;border-radius:10px;padding:9px 10px}
+.admin-section-body .field textarea{min-height:92px}
+.admin-section-body .field-hint{font-size:.64rem;line-height:1.35}
+.admin-section-body .admin-image-preview{border-radius:12px}
+.admin-section-body .admin-image-preview img{max-height:210px;object-fit:cover}
+.admin-section-body .admin-image-empty{min-height:96px;border-radius:12px}
+.admin-section-body .admin-upload-label{min-height:40px;border-radius:10px;font-size:.74rem}
+.admin-section-body .admin-save-button{min-height:42px;border-radius:11px;font-size:.78rem}
+.admin-subsection-group{border-radius:18px;padding:12px}
+.admin-subsection-title{padding:2px 2px 10px}
+.admin-subsection-title strong{font-size:.88rem}
+.admin-subsection-title span{font-size:.68rem}
+@media(max-width:650px){
+  .inner-mini-cta{padding:48px 0 96px}
+  .inner-mini-cta-copy{padding:26px 22px;border-radius:19px}
+  .admin-page-editor{gap:9px}
+  .admin-page-editor .admin-section-intro.compact{padding:12px 13px}
+  .admin-section-card>summary{min-height:50px;padding:11px 12px}
+  .admin-section-body{padding:0 12px 12px}
+  .admin-section-body .admin-two-col{grid-template-columns:1fr}
+}
