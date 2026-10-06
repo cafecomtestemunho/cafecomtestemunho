@@ -5,7 +5,7 @@ import{createClient}from"@/lib/supabase/client";
 import{
   Home,PanelsTopLeft,CalendarDays,LibraryBig,Settings2,ChevronLeft,ChevronRight,
   Image as ImageIcon,Upload,Save,Plus,Eye,EyeOff,BookHeart,Instagram,MessageSquareQuote,
-  Images,LogOut,ExternalLink,SlidersHorizontal,LayoutDashboard
+  Images,LogOut,ExternalLink,SlidersHorizontal,LayoutDashboard,UsersRound,Clock3,Ticket,MapPin,Trash2
 }from"lucide-react";
 
 type AnyRow=Record<string,any>;
@@ -35,11 +35,12 @@ const sectionNames:Record<string,string>={
 };
 
 export function AdminClient({
-  userId,userEmail,roles,initialEvents,initialTestimonials,initialSections,initialStory,
+  userId,userEmail,roles,initialEvents,initialEventGuests,initialEventSchedule,initialEventFaqs,initialTestimonials,initialSections,initialStory,
   initialScriptures,initialInstagram,initialPhotos,initialAlbums,initialSocial,initialSettings
 }:{
   userId:string;userEmail:string;roles:string[];
-  initialEvents:AnyRow[];initialTestimonials:AnyRow[];initialSections:AnyRow[];initialStory:AnyRow[];
+  initialEvents:AnyRow[];initialEventGuests:AnyRow[];initialEventSchedule:AnyRow[];initialEventFaqs:AnyRow[];
+  initialTestimonials:AnyRow[];initialSections:AnyRow[];initialStory:AnyRow[];
   initialScriptures:AnyRow[];initialInstagram:AnyRow[];initialPhotos:AnyRow[];initialAlbums:AnyRow[];
   initialSocial:AnyRow[];initialSettings:AnyRow[];
 }){
@@ -50,6 +51,9 @@ export function AdminClient({
   const[mode,setMode]=useState<EditMode>("basic");
   const[message,setMessage]=useState("");
   const[events,setEvents]=useState(initialEvents);
+  const[eventGuests,setEventGuests]=useState(initialEventGuests);
+  const[eventSchedule,setEventSchedule]=useState(initialEventSchedule);
+  const[eventFaqs,setEventFaqs]=useState(initialEventFaqs);
   const[testimonials,setTestimonials]=useState(initialTestimonials);
   const[sections,setSections]=useState(initialSections);
   const[story,setStory]=useState(initialStory);
@@ -81,6 +85,48 @@ export function AdminClient({
     const{data,error}=await s.from("events").update({...patch,updated_by:userId}).eq("id",id).select().single();
     if(error){notify(error.message);return}
     setEvents(events.map(x=>x.id===id?data:x));await audit("EVENT_UPDATED","event",id);notify("Evento salvo.");
+  }
+  async function addEventGuest(eventId:string,payload:AnyRow){
+    const{data,error}=await s.from("event_guests").insert({...payload,event_id:eventId,sort_order:eventGuests.filter(x=>x.event_id===eventId).length*10+10}).select().single();
+    if(error){notify(error.message);return}
+    setEventGuests([...eventGuests,data]);await audit("EVENT_GUEST_CREATED","event_guest",data.id,{event_id:eventId});notify("Participação adicionada.");
+  }
+  async function updateEventGuest(id:string,patch:AnyRow){
+    const{data,error}=await s.from("event_guests").update(patch).eq("id",id).select().single();
+    if(error){notify(error.message);return}
+    setEventGuests(eventGuests.map(x=>x.id===id?data:x));notify("Participação salva.");
+  }
+  async function deleteEventGuest(id:string){
+    const{error}=await s.from("event_guests").delete().eq("id",id);if(error){notify(error.message);return}
+    setEventGuests(eventGuests.filter(x=>x.id!==id));notify("Participação removida.");
+  }
+  async function addScheduleItem(eventId:string,payload:AnyRow){
+    const{data,error}=await s.from("event_schedule").insert({...payload,event_id:eventId,sort_order:eventSchedule.filter(x=>x.event_id===eventId).length*10+10}).select().single();
+    if(error){notify(error.message);return}
+    setEventSchedule([...eventSchedule,data]);notify("Item da programação adicionado.");
+  }
+  async function updateScheduleItem(id:string,patch:AnyRow){
+    const{data,error}=await s.from("event_schedule").update(patch).eq("id",id).select().single();
+    if(error){notify(error.message);return}
+    setEventSchedule(eventSchedule.map(x=>x.id===id?data:x));notify("Programação salva.");
+  }
+  async function deleteScheduleItem(id:string){
+    const{error}=await s.from("event_schedule").delete().eq("id",id);if(error){notify(error.message);return}
+    setEventSchedule(eventSchedule.filter(x=>x.id!==id));notify("Item removido.");
+  }
+  async function addEventFaq(eventId:string,payload:AnyRow){
+    const{data,error}=await s.from("event_faqs").insert({...payload,event_id:eventId,sort_order:eventFaqs.filter(x=>x.event_id===eventId).length*10+10}).select().single();
+    if(error){notify(error.message);return}
+    setEventFaqs([...eventFaqs,data]);notify("Pergunta adicionada.");
+  }
+  async function updateEventFaq(id:string,patch:AnyRow){
+    const{data,error}=await s.from("event_faqs").update(patch).eq("id",id).select().single();
+    if(error){notify(error.message);return}
+    setEventFaqs(eventFaqs.map(x=>x.id===id?data:x));notify("Pergunta salva.");
+  }
+  async function deleteEventFaq(id:string){
+    const{error}=await s.from("event_faqs").delete().eq("id",id);if(error){notify(error.message);return}
+    setEventFaqs(eventFaqs.filter(x=>x.id!==id));notify("Pergunta removida.");
   }
   async function createEvent(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();const fd=new FormData(e.currentTarget);const title=String(fd.get("title")||"").trim();
@@ -213,7 +259,11 @@ export function AdminClient({
           <Field label="Resumo"><textarea name="summary"/></Field>
           <button className="btn btn-dark" type="submit">Criar rascunho</button>
         </form></details>
-        <div className="admin-editor-stack">{events.map(e=><EventEditor key={e.id} event={e} mode={mode} onSave={saveEvent} notify={notify}/>)}
+        <div className="admin-editor-stack">{events.map(e=><EventEditor key={e.id} event={e} mode={mode} onSave={saveEvent} notify={notify}
+          guests={eventGuests.filter(x=>x.event_id===e.id)} schedule={eventSchedule.filter(x=>x.event_id===e.id)} faqs={eventFaqs.filter(x=>x.event_id===e.id)}
+          onAddGuest={addEventGuest} onUpdateGuest={updateEventGuest} onDeleteGuest={deleteEventGuest}
+          onAddSchedule={addScheduleItem} onUpdateSchedule={updateScheduleItem} onDeleteSchedule={deleteScheduleItem}
+          onAddFaq={addEventFaq} onUpdateFaq={updateEventFaq} onDeleteFaq={deleteEventFaq}/>)}
         {!events.length&&<div className="admin-empty">Nenhum evento cadastrado.</div>}</div>
       </section>}
 
