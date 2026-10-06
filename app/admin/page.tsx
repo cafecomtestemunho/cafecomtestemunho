@@ -1,4 +1,6 @@
-import{redirect}from"next/navigation";import{createServerSupabaseClient}from"@/lib/supabase/server";import{AdminClient}from"./ui";
+import{redirect}from"next/navigation";
+import{createServerSupabaseClient}from"@/lib/supabase/server";
+import{AdminClient}from"./ui";
 
 export default async function AdminPage(){
   const s=await createServerSupabaseClient();
@@ -10,17 +12,18 @@ export default async function AdminPage(){
 
   const[
     {data:events},{data:testimonials},{data:sections},{data:story},{data:scriptures},
-    {data:instagram},{data:photos},{data:albums},{data:social}
+    {data:instagram},{data:photos},{data:albums},{data:social},{data:settings}
   ]=await Promise.all([
     s.from("events").select("*").order("created_at",{ascending:false}),
-    s.from("testimonials").select("id,display_name_original,original_text,publication_consent,status,created_at").order("created_at",{ascending:false}).limit(80),
+    s.from("testimonials").select("id,display_name_original,original_text,publication_consent,status,created_at").order("created_at",{ascending:false}).limit(100),
     s.from("institutional_sections").select("*").order("sort_order"),
     s.from("story_chapters").select("*").order("sort_order"),
     s.from("scripture_spotlights").select("*").order("location").order("sort_order"),
     s.from("instagram_highlights").select("*").order("sort_order"),
-    s.from("media_assets").select("id,url,alt_text,created_at,album_id,featured").eq("media_type","image").order("created_at",{ascending:false}).limit(120),
+    s.from("media_assets").select("id,url,alt_text,created_at,album_id,featured").eq("media_type","image").order("created_at",{ascending:false}).limit(160),
     s.from("photo_albums").select("*").order("sort_order").order("created_at",{ascending:false}),
-    s.from("social_links").select("*").order("sort_order")
+    s.from("social_links").select("*").order("sort_order"),
+    s.from("site_settings").select("*").order("setting_key")
   ]);
 
   return <AdminClient
@@ -36,5 +39,6 @@ export default async function AdminPage(){
     initialPhotos={photos||[]}
     initialAlbums={albums||[]}
     initialSocial={social||[]}
+    initialSettings={settings||[]}
   />
 }
