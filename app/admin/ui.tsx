@@ -450,27 +450,27 @@ function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:E
   </details>
 }
 
-function StoryEditor({chapter,mode,onSave,notify}:{chapter:AnyRow;mode:EditMode;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
+function StoryEditor({chapter,mode,onSave,onDelete,notify}:{chapter:AnyRow;mode:EditMode;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void;notify:(m:string)=>void}){
   const[t,setT]=useState(chapter.title||""),[body,setBody]=useState(chapter.body||""),[eyebrow,setEyebrow]=useState(chapter.eyebrow||""),[quote,setQuote]=useState(chapter.quote||""),[image,setImage]=useState(chapter.image_url||""),[visible,setVisible]=useState(chapter.visible!==false),[order,setOrder]=useState(String(chapter.sort_order??0));
   async function upload(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/historia");notify("Enviando imagem...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setImage(data.url);notify("Imagem enviada. Salve o capítulo.");}
   return <details className="admin-section-card"><summary><div><span>{t||"Capítulo"}</span><small>{eyebrow}</small></div><ChevronRight size={18}/></summary><div className="admin-section-body">
     <div className="admin-inline-toggle"><div><strong>Exibir capítulo</strong></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button"><span/></button></div>
     <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field><Field label="Narrativa"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
     {mode==="advanced"&&<><Field label="Marcador"><input value={eyebrow} onChange={e=>setEyebrow(e.target.value)}/></Field><Field label="Frase em destaque"><textarea value={quote} onChange={e=>setQuote(e.target.value)}/></Field><Field label="Imagem"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field><Field label="Ordem"><input type="number" value={order} onChange={e=>setOrder(e.target.value)}/></Field></>}
-    <button className="admin-save-button" onClick={()=>onSave(chapter.id,{title:t,body,eyebrow,quote:quote||null,image_url:image||null,visible,sort_order:Number(order)||0})}><Save size={18}/>Salvar capítulo</button>
+    <div className="admin-record-actions"><button className="admin-save-button" onClick={()=>onSave(chapter.id,{title:t,body,eyebrow,quote:quote||null,image_url:image||null,visible,sort_order:Number(order)||0})}><Save size={18}/>Salvar capítulo</button><button className="admin-remove-button" onClick={()=>onDelete(chapter.id)}><Trash2 size={17}/>Remover</button></div>
   </div></details>
 }
 
 function EventWizard({
   event,mode,setMode,onBack,onSave,notify,guests,schedule,faqs,
-  onAddGuest,onUpdateGuest,onDeleteGuest,onAddSchedule,onUpdateSchedule,onDeleteSchedule,onAddFaq,onUpdateFaq,onDeleteFaq
+  onAddGuest,onUpdateGuest,onDeleteGuest,onAddSchedule,onUpdateSchedule,onDeleteSchedule,onAddFaq,onUpdateFaq,onDeleteFaq,onDeleteEvent
 }:{
   event:AnyRow;mode:EditMode;setMode:(m:EditMode)=>void;onBack:()=>void;
   onSave:(id:string,patch:AnyRow)=>Promise<AnyRow|null>;notify:(m:string)=>void;
   guests:AnyRow[];schedule:AnyRow[];faqs:AnyRow[];
   onAddGuest:(eventId:string,payload:AnyRow)=>void;onUpdateGuest:(id:string,patch:AnyRow)=>void;onDeleteGuest:(id:string)=>void;
   onAddSchedule:(eventId:string,payload:AnyRow)=>void;onUpdateSchedule:(id:string,patch:AnyRow)=>void;onDeleteSchedule:(id:string)=>void;
-  onAddFaq:(eventId:string,payload:AnyRow)=>void;onUpdateFaq:(id:string,patch:AnyRow)=>void;onDeleteFaq:(id:string)=>void;
+  onAddFaq:(eventId:string,payload:AnyRow)=>void;onUpdateFaq:(id:string,patch:AnyRow)=>void;onDeleteFaq:(id:string)=>void;onDeleteEvent:(id:string)=>void;
 }){
   const[state,setState]=useState<AnyRow>({...event});
   const initialStep=Math.max(1,Math.min(8,Number(event.wizard_step||1)));
@@ -641,9 +641,10 @@ function EventWizard({
           <ReviewItem label="Status atual" value={state.status||"RASCUNHO"}/>
         </div>
         <div className="event-review-actions">
-          <button className="btn btn-secondary" disabled={saving} onClick={saveDraft}>Salvar como rascunho</button>
+          <button className="btn btn-secondary" disabled={saving} onClick={saveDraft}>{state.status==="PUBLICADO"?"Ocultar do site":"Salvar como rascunho"}</button>
           <a className="btn btn-secondary" href={"/eventos/"+state.slug} target="_blank" rel="noreferrer">Visualizar página</a>
-          <button className="btn btn-dark" disabled={saving} onClick={publishEvent}>{saving?"Salvando...":"Publicar evento"}</button>
+          <button className="btn btn-dark" disabled={saving} onClick={publishEvent}>{saving?"Salvando...":state.status==="PUBLICADO"?"Atualizar publicação":"Publicar evento"}</button>
+          <button className="admin-remove-button full" type="button" onClick={()=>onDeleteEvent(event.id)}><Trash2 size={17}/>Remover evento</button>
         </div>
       </>}
     </section>
@@ -719,11 +720,51 @@ function FaqEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:A
   return <details className="event-item-card"><summary><div><strong>{q}</strong></div><ChevronRight size={17}/></summary><div className="event-item-body"><Field label="Pergunta"><input value={q} onChange={e=>setQ(e.target.value)}/></Field><Field label="Resposta"><textarea value={a} onChange={e=>setA(e.target.value)}/></Field><div className="event-item-actions"><button className="admin-save-button" onClick={()=>onSave(item.id,{question:q,answer:a})}><Save size={16}/>Salvar</button><button className="event-delete-button" onClick={()=>onDelete(item.id)}><Trash2 size={16}/>Remover</button></div></div></details>
 }
 
-function ScriptureEditor({item,onSave}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void}){
+function ScriptureEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
   const[state,setState]=useState<AnyRow>({...item});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
   return <details className="admin-section-card"><summary><div><span>{item.reference}</span><small>{item.location==="home"?"Página inicial":"Sobre"}</small></div><ChevronRight size={18}/></summary><div className="admin-section-body">
     <div className="admin-inline-toggle"><div><strong>Exibir Palavra</strong></div><button className={state.visible?"on":""} onClick={()=>set("visible",!state.visible)} type="button"><span/></button></div>
-    <Field label="Referência"><input value={state.reference||""} onChange={e=>set("reference",e.target.value)}/></Field><Field label="Versículo"><textarea value={state.verse_text||""} onChange={e=>set("verse_text",e.target.value)}/></Field><Field label="Reflexão"><textarea value={state.reflection||""} onChange={e=>set("reflection",e.target.value)}/></Field><button className="admin-save-button" onClick={()=>onSave(item.id,state)}><Save size={18}/>Salvar Palavra</button>
+    <Field label="Onde aparece"><select value={state.location||"home"} onChange={e=>set("location",e.target.value)}><option value="home">Página inicial</option><option value="about">Sobre</option></select></Field>
+    <Field label="Referência"><input value={state.reference||""} onChange={e=>set("reference",e.target.value)}/></Field><Field label="Versículo"><textarea value={state.verse_text||""} onChange={e=>set("verse_text",e.target.value)}/></Field><Field label="Reflexão"><textarea value={state.reflection||""} onChange={e=>set("reflection",e.target.value)}/></Field>
+    <div className="admin-record-actions"><button className="admin-save-button" onClick={()=>onSave(item.id,state)}><Save size={18}/>Salvar Palavra</button><button className="admin-remove-button" onClick={()=>onDelete(item.id)}><Trash2 size={17}/>Remover</button></div>
+  </div></details>
+}
+
+function AlbumEditor({album,onSave,onDelete}:{album:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
+  const[state,setState]=useState<AnyRow>({...album});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
+  return <details className="admin-section-card"><summary><div><span>{state.title}</span><small>{state.visible!==false?"Visível":"Oculto"}</small></div><ChevronRight size={18}/></summary><div className="admin-section-body">
+    <div className="admin-inline-toggle"><div><strong>Exibir álbum</strong><span>Ocultar não apaga as fotos.</span></div><button className={state.visible!==false?"on":""} onClick={()=>set("visible",state.visible===false)} type="button"><span/></button></div>
+    <Field label="Nome"><input value={state.title||""} onChange={e=>set("title",e.target.value)}/></Field>
+    <Field label="Descrição"><textarea value={state.description||""} onChange={e=>set("description",e.target.value)}/></Field>
+    <div className="admin-two-col"><Field label="Slug"><input value={state.slug||""} onChange={e=>set("slug",slugifyLocal(e.target.value))}/></Field><Field label="Ordem"><input type="number" value={state.sort_order??0} onChange={e=>set("sort_order",Number(e.target.value)||0)}/></Field></div>
+    <div className="admin-record-actions"><button className="admin-save-button" onClick={()=>onSave(album.id,state)}><Save size={17}/>Salvar álbum</button><button className="admin-remove-button" onClick={()=>onDelete(album.id)}><Trash2 size={17}/>Remover</button></div>
+  </div></details>
+}
+
+function PhotoEditor({photo,albums,onSave,onDelete}:{photo:AnyRow;albums:AnyRow[];onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
+  const[state,setState]=useState<AnyRow>({...photo});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
+  const visible=state.is_private!==true;
+  return <figure className={"admin-photo-manage "+(!visible?"is-hidden":"")}>
+    <img src={state.url} alt={state.alt_text||""}/>
+    <figcaption>
+      <div className="admin-photo-status"><span>{visible?"Visível":"Oculta"}</span>{state.featured&&<span>Destaque</span>}</div>
+      <Field label="Descrição"><input value={state.alt_text||""} onChange={e=>set("alt_text",e.target.value)}/></Field>
+      <Field label="Álbum"><select value={state.album_id||""} onChange={e=>set("album_id",e.target.value||null)}><option value="">Galeria geral</option>{albums.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></Field>
+      <label className="admin-check"><input type="checkbox" checked={state.featured===true} onChange={e=>set("featured",e.target.checked)}/>Destacar na página inicial</label>
+      <label className="admin-check"><input type="checkbox" checked={visible} onChange={e=>set("is_private",!e.target.checked)}/>Exibir no site</label>
+      <div className="admin-record-actions compact"><button className="admin-save-button" onClick={()=>onSave(photo.id,{alt_text:state.alt_text||null,album_id:state.album_id||null,featured:state.featured===true,is_private:state.is_private===true,sort_order:Number(state.sort_order)||0})}><Save size={16}/>Salvar</button><button className="admin-remove-button" onClick={()=>onDelete(photo.id)}><Trash2 size={16}/></button></div>
+    </figcaption>
+  </figure>
+}
+
+function InstagramAdminEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
+  const[state,setState]=useState<AnyRow>({...item});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
+  return <details className="admin-section-card"><summary><div><span>Post do Instagram</span><small>{state.visible!==false?"Visível":"Oculto"} · {state.location==="both"?"Home e Sobre":state.location==="about"?"Sobre":"Página inicial"}</small></div><ChevronRight size={18}/></summary><div className="admin-section-body">
+    <div className="admin-inline-toggle"><div><strong>Exibir no site</strong><span>Ocultar mantém o post salvo para usar depois.</span></div><button className={state.visible!==false?"on":""} onClick={()=>set("visible",state.visible===false)} type="button"><span/></button></div>
+    <Field label="Link do post ou Reel"><input type="url" value={state.post_url||""} onChange={e=>set("post_url",e.target.value)}/></Field>
+    <div className="admin-two-col"><Field label="Onde aparece"><select value={state.location||"home"} onChange={e=>set("location",e.target.value)}><option value="home">Página inicial</option><option value="about">Sobre</option><option value="both">Home e Sobre</option></select></Field><Field label="Ordem"><input type="number" value={state.sort_order??0} onChange={e=>set("sort_order",Number(e.target.value)||0)}/></Field></div>
+    <a className="admin-external-link" href={state.post_url} target="_blank" rel="noreferrer"><Instagram size={16}/>Abrir publicação original <ExternalLink size={14}/></a>
+    <div className="admin-record-actions"><button className="admin-save-button" onClick={()=>onSave(item.id,{post_url:state.post_url,location:state.location,visible:state.visible!==false,sort_order:Number(state.sort_order)||0,title:null,caption:null,cover_url:null})}><Save size={17}/>Salvar</button><button className="admin-remove-button" onClick={()=>onDelete(item.id)}><Trash2 size={17}/>Remover</button></div>
   </div></details>
 }
 
