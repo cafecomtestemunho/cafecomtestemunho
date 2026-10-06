@@ -593,4 +593,7 @@ function ImagePicker({value,onChange,onUpload}:{value:string;onChange:(v:string)
   </div>
 }
 function toLocalInput(v:any){if(!v)return"";const d=new Date(v);if(Number.isNaN(d.getTime()))return"";const pad=(n:number)=>String(n).padStart(2,"0");return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
+function splitLocalDateTime(v:any){const x=toLocalInput(v);if(!x)return{date:"",time:""};const[date,time]=x.split("T");return{date,time}}
+function combineLocalDateTime(date:string,time:string){if(!date)return null;const d=new Date(`${date}T${time||"00:00"}:00`);return Number.isNaN(d.getTime())?null:d.toISOString()}
+function todayInput(){const d=new Date();const pad=(n:number)=>String(n).padStart(2,"0");return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
 function slugifyLocal(v:string){return v.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")}
