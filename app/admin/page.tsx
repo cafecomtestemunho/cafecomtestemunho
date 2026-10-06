@@ -24,7 +24,7 @@ export default async function AdminPage(){
     s.from("story_chapters").select("*").order("sort_order"),
     s.from("scripture_spotlights").select("*").order("location").order("sort_order"),
     s.from("instagram_highlights").select("*").order("sort_order"),
-    s.from("media_assets").select("id,url,alt_text,created_at,album_id,featured").eq("media_type","image").order("created_at",{ascending:false}).limit(160),
+    s.from("media_assets").select("*").eq("media_type","image").order("created_at",{ascending:false}).limit(160),
     s.from("photo_albums").select("*").order("sort_order").order("created_at",{ascending:false}),
     s.from("social_links").select("*").order("sort_order"),
     s.from("site_settings").select("*").order("setting_key")
