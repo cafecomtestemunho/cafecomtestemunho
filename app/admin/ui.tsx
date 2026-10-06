@@ -51,7 +51,7 @@ export function AdminClient({
   const[mode,setMode]=useState<EditMode>("basic");
   const[message,setMessage]=useState("");
   const[events,setEvents]=useState(initialEvents);
-  const[openedEventId,setOpenedEventId]=useState<string|null>(null);
+  const[selectedEventId,setSelectedEventId]=useState<string|null>(null);
   const[eventGuests,setEventGuests]=useState(initialEventGuests);
   const[eventSchedule,setEventSchedule]=useState(initialEventSchedule);
   const[eventFaqs,setEventFaqs]=useState(initialEventFaqs);
@@ -84,8 +84,9 @@ export function AdminClient({
   }
   async function saveEvent(id:string,patch:AnyRow){
     const{data,error}=await s.from("events").update({...patch,updated_by:userId}).eq("id",id).select().single();
-    if(error){notify(error.message);return}
-    setEvents(events.map(x=>x.id===id?data:x));await audit("EVENT_UPDATED","event",id);notify("Evento salvo.");
+    if(error){notify(error.message);return null}
+    setEvents(current=>current.map(x=>x.id===id?data:x));await audit("EVENT_UPDATED","event",id);notify("Etapa salva.");
+    return data;
   }
   async function addEventGuest(eventId:string,payload:AnyRow){
     const{data,error}=await s.from("event_guests").insert({...payload,event_id:eventId,sort_order:eventGuests.filter(x=>x.event_id===eventId).length*10+10}).select().single();
@@ -131,20 +132,15 @@ export function AdminClient({
   }
   async function createEvent(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();const fd=new FormData(e.currentTarget);const title=String(fd.get("title")||"").trim();
-    const slug=slugify(String(fd.get("slug")||title));
-    const date=String(fd.get("event_date")||""),time=String(fd.get("event_time")||"");
-    const starts_at=date?combineLocalDateTime(date,time||"19:00"):null;
-    const admission_type=String(fd.get("admission_type")||"FREE");
+    if(!title){notify("Informe o nome do evento.");return}
+    const slug=(slugify(title)||"evento")+"-"+Date.now().toString().slice(-5);
     const{data,error}=await s.from("events").insert({
-      title,slug,summary:String(fd.get("summary")||""),starts_at,status:"RASCUNHO",
-      venue:String(fd.get("venue")||"")||null,address:String(fd.get("address")||"")||null,city:String(fd.get("city")||"")||null,
-      audience:String(fd.get("audience")||"")||null,age_range:String(fd.get("age_range")||"")||null,
-      admission_type,donation_item:String(fd.get("donation_item")||"")||null,
+      title,slug,status:"RASCUNHO",admission_type:"FREE",wizard_step:1,wizard_completed:{},
       created_by:userId,updated_by:userId
     }).select().single();
     if(error){notify(error.message);return}
-    setEvents([data,...events]);setOpenedEventId(data.id);e.currentTarget.reset();await audit("EVENT_CREATED","event",data.id,{slug});
-    notify("Rascunho criado. O editor completo foi aberto abaixo para você continuar.");
+    setEvents(current=>[data,...current]);setSelectedEventId(data.id);e.currentTarget.reset();await audit("EVENT_CREATED","event",data.id,{slug});
+    notify("Rascunho criado. Comece pela primeira etapa.");
   }
   async function moderate(id:string,status:string){
     const{data,error}=await s.from("testimonials").update({status,reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",id).select("id,display_name_original,original_text,publication_consent,status,created_at").single();
