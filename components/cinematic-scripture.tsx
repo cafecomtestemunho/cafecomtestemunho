@@ -2,7 +2,7 @@
 
 import{useEffect,useRef,useState}from"react";
 
-export function CinematicScripture({verse,reference,reflection}:{verse:string;reference:string;reflection?:string|null}){
+export function CinematicScripture({verse,reference,reflection,logoUrl,brandName}:{verse:string;reference:string;reflection?:string|null;logoUrl?:string|null;brandName?:string|null}){
   const ref=useRef<HTMLElement>(null);
   const[visible,setVisible]=useState(false);
   const words=String(verse||"").trim().split(/\s+/).filter(Boolean);
@@ -29,6 +29,7 @@ export function CinematicScripture({verse,reference,reflection}:{verse:string;re
       <strong className="home3-word-reference" style={{transitionDelay:`${470+words.length*78}ms`}}>{reference}</strong>
       <span className="home3-word-rule" style={{transitionDelay:`${560+words.length*78}ms`}}/>
       {reflection&&<p className="home3-word-reflection" style={{transitionDelay:`${650+words.length*78}ms`}}>{reflection}</p>}
+      {logoUrl&&<div className="home3-word-logo-wrap" style={{transitionDelay:`${760+words.length*78}ms`}}><img className="home3-word-logo" src={logoUrl} alt={brandName||"Café com Testemunho"}/></div>}
     </div>
   </section>;
 }
