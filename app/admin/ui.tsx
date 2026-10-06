@@ -430,7 +430,7 @@ function EventEditor({
   function setEndDate(date:string){set("ends_at",date?combineLocalDateTime(date,endParts.time||startParts.time||"21:00"):null)}
   function setEndTime(time:string){set("ends_at",time?combineLocalDateTime(endParts.date||startParts.date||todayInput(),time):null)}
 
-  return <details className="admin-section-card event-editor-card" open={defaultOpen||undefined}>
+  return <details className="admin-section-card event-editor-card" defaultOpen={defaultOpen}>
     <summary><div><span>{event.title}</span><small>{event.status} · {guests.length} participações · {schedule.length} itens na programação</small></div><ChevronRight size={18}/></summary>
     <div className="admin-section-body event-editor-body">
       <div className="event-form-section">
