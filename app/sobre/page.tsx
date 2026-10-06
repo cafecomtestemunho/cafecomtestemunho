@@ -1,14 +1,14 @@
 import Link from"next/link";
-import{ArrowRight,BookHeart,HeartHandshake,Images,Sparkles}from"lucide-react";
+import{ArrowRight,BookHeart,HeartHandshake}from"lucide-react";
 import{createServerSupabaseClient}from"@/lib/supabase/server";
 import{Reveal}from"@/components/reveal";
-import{BrandMark}from"@/components/brand-mark";
+import{AboutScripture}from"@/components/about-scripture";
 
 export const metadata={title:"Sobre"};
 
 export default async function SobrePage(){
   const s=await createServerSupabaseClient();
-  const[{data:mission},{data:story},{data:scripture},{data:photos},{data:founder},{data:wordSection},{data:photosSection},{data:testimonySection},{data:cta}]=await Promise.all([
+  const[{data:mission},{data:story},{data:scripture},{data:photos},{data:founder},{data:wordSection},{data:photosSection},{data:testimonySection},{data:cta},{data:brandSetting}]=await Promise.all([
     s.from("institutional_sections").select("*").eq("section_key","about_mission").maybeSingle(),
     s.from("story_chapters").select("*").eq("visible",true).order("sort_order"),
     s.from("scripture_spotlights").select("*").eq("location","about").eq("visible",true).order("sort_order").limit(1).maybeSingle(),
@@ -17,22 +17,24 @@ export default async function SobrePage(){
     s.from("institutional_sections").select("*").eq("section_key","about_word").maybeSingle(),
     s.from("institutional_sections").select("*").eq("section_key","about_photos").maybeSingle(),
     s.from("institutional_sections").select("*").eq("section_key","about_testimony").maybeSingle(),
-    s.from("institutional_sections").select("*").eq("section_key","about_cta").maybeSingle()
+    s.from("institutional_sections").select("*").eq("section_key","about_cta").maybeSingle(),
+    s.from("site_settings").select("value").eq("setting_key","brand").maybeSingle()
   ]);
-  const heroStyle=mission?.image_url?{backgroundImage:`linear-gradient(90deg,rgba(38,19,9,.91),rgba(38,19,9,.54)),url("${mission.image_url}")`}:undefined;
+  const brand=(brandSetting?.value||{})as{name?:string;logo_url?:string};
+  const heroStyle=mission?.image_url?{backgroundImage:`linear-gradient(180deg,rgba(34,17,8,.42),rgba(34,17,8,.76)),url("${mission.image_url}")`}:undefined;
 
   return <main className="inner-page">
-    <section className="inner-hero inner-about-hero" style={heroStyle}>
-      <div className="inner-hero-ornament" aria-hidden/>
-      <div className="container inner-hero-content">
-        <Reveal className="inner-brand-wrap"><BrandMark compact/></Reveal>
-        <Reveal delay={80} className="inner-hero-copy">
-          <div className="inner-kicker">{mission?.subtitle||"Como tudo começou"}</div>
-          <h1>{mission?.title||"Uma história real que se tornou um propósito"}</h1>
-          <p>{mission?.body||"O Café com Testemunho nasceu em um momento de dor e se tornou um espaço de fé, acolhimento e recomeço."}</p>
+    <section className="about-hero-refined" style={heroStyle}>
+      <div className="about-hero-glow" aria-hidden="true"/>
+      <div className="container about-hero-layout">
+        {brand.logo_url&&<Reveal className="about-hero-logo-wrap"><img className="about-hero-logo" src={brand.logo_url} alt={brand.name||"Café com Testemunho"}/></Reveal>}
+        <Reveal delay={90} className="about-hero-copy-refined">
+          <div className="about-hero-kicker">{mission?.subtitle||"Para reunir, acolher e fortalecer mulheres por meio da fé e de testemunhos reais."}</div>
+          <h1>{mission?.title||"Por que existimos"}</h1>
+          <p>{mission?.body||"Cada encontro é um capítulo do projeto. As histórias compartilhadas formam uma memória viva de recomeços, aprendizados e esperança."}</p>
         </Reveal>
       </div>
-      <div className="inner-hero-curve" aria-hidden/>
+      <div className="about-hero-curve" aria-hidden="true"/>
     </section>
 
     <section className="inner-section inner-paper">
@@ -57,9 +59,7 @@ export default async function SobrePage(){
       </div>
     </section>
 
-    {wordSection?.visible!==false&&scripture&&<section className="inner-scripture">
-      <div className="container inner-narrow"><Reveal className="inner-scripture-copy"><Sparkles size={20}/><div className="inner-kicker">{wordSection?.subtitle||"Uma palavra que acompanha essa história"}</div><blockquote>“{scripture.verse_text}”</blockquote><strong>{scripture.reference}</strong>{scripture.reflection&&<p>{scripture.reflection}</p>}</Reveal></div>
-    </section>}
+    {wordSection?.visible!==false&&scripture&&<AboutScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} kicker={wordSection?.subtitle}/>} 
 
     {photosSection?.visible!==false&&!!photos?.length&&<section className="inner-section inner-memory-section">
       <div className="container inner-narrow">
