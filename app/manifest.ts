@@ -1,0 +1,1 @@
+import type{MetadataRoute}from"next";export default function manifest():MetadataRoute.Manifest{return{name:"Café com Testemunho",short_name:"Café Testemunho",description:"Fé, acolhimento, testemunhos e encontros entre mulheres.",start_url:"/",display:"standalone",background_color:"#FAF4EC",theme_color:"#3B1F0D",lang:"pt-BR"}}
