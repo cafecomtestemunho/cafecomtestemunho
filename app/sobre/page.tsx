@@ -1,49 +1,50 @@
 import Link from"next/link";
-import{ArrowRight,Images,Instagram,BookHeart,HeartHandshake}from"lucide-react";
+import{ArrowRight,BookHeart,HeartHandshake,Images,Sparkles}from"lucide-react";
 import{createServerSupabaseClient}from"@/lib/supabase/server";
 import{Reveal}from"@/components/reveal";
 import{BrandMark}from"@/components/brand-mark";
-import{InstagramEmbed}from"@/components/instagram-embed";
 
 export const metadata={title:"Sobre"};
 
 export default async function SobrePage(){
   const s=await createServerSupabaseClient();
-  const[
-    {data:mission},{data:story},{data:scripture},{data:photos},{data:instagram},{data:cta},{data:social}
-  ]=await Promise.all([
+  const[{data:mission},{data:story},{data:scripture},{data:photos},{data:founder},{data:cta}]=await Promise.all([
     s.from("institutional_sections").select("*").eq("section_key","about_mission").maybeSingle(),
     s.from("story_chapters").select("*").eq("visible",true).order("sort_order"),
     s.from("scripture_spotlights").select("*").eq("location","about").eq("visible",true).order("sort_order").limit(1).maybeSingle(),
-    s.from("media_assets").select("id,url,alt_text,created_at").eq("media_type","image").eq("is_private",false).order("created_at",{ascending:false}).limit(5),
-    s.from("instagram_highlights").select("*").eq("visible",true).in("location",["about","both"]).order("sort_order").limit(3),
-    s.from("institutional_sections").select("*").eq("section_key","about_cta").maybeSingle(),
-    s.from("social_links").select("url").eq("icon_key","instagram").eq("visible",true).order("sort_order").limit(1).maybeSingle()
+    s.from("media_assets").select("id,url,alt_text,created_at").eq("media_type","image").eq("is_private",false).order("created_at",{ascending:false}).limit(6),
+    s.from("testimonial_publications").select("slug,public_title,public_excerpt,public_display_name").eq("slug","como-surgiu-o-cafe-com-testemunho").maybeSingle(),
+    s.from("institutional_sections").select("*").eq("section_key","about_cta").maybeSingle()
   ]);
+  const heroStyle=mission?.image_url?{backgroundImage:`linear-gradient(90deg,rgba(38,19,9,.91),rgba(38,19,9,.54)),url("${mission.image_url}")`}:undefined;
 
-  return <main>
-    <section className="hero about-hero ambient-bg">
-      <div className="ambient-orb orb-one"/><div className="ambient-orb orb-two"/>
-      <div className="container about-hero-grid">
-        <Reveal><BrandMark/></Reveal>
-        <Reveal delay={120}>
-          <div className="eyebrow">Como tudo começou</div>
-          <h1>Antes de ser um projeto, foi uma resposta em um momento de dor.</h1>
-          <p>{mission?.body??"O Café com Testemunho nasceu de uma experiência pessoal e cresceu para reunir mulheres em torno de fé, escuta e partilha."}</p>
+  return <main className="inner-page">
+    <section className="inner-hero inner-about-hero" style={heroStyle}>
+      <div className="inner-hero-ornament" aria-hidden/>
+      <div className="container inner-hero-content">
+        <Reveal className="inner-brand-wrap"><BrandMark compact/></Reveal>
+        <Reveal delay={80} className="inner-hero-copy">
+          <div className="inner-kicker">{mission?.subtitle||"Como tudo começou"}</div>
+          <h1>{mission?.title||"Uma história real que se tornou um propósito"}</h1>
+          <p>{mission?.body||"O Café com Testemunho nasceu em um momento de dor e se tornou um espaço de fé, acolhimento e recomeço."}</p>
         </Reveal>
       </div>
+      <div className="inner-hero-curve" aria-hidden/>
     </section>
 
-    <section className="section section-paper">
-      <div className="container">
-        <Reveal><div className="eyebrow">Nossa história</div><h2 className="section-title">Um testemunho contado em capítulos</h2><p className="lead">A história do Café com Testemunho não começou pronta. Ela foi atravessando dor, direção, retorno, recomeço e encontro.</p></Reveal>
-
-        <div className="story-timeline">
-          <div className="story-line" aria-hidden/>
-          {story?.map((chapter,i)=><Reveal key={chapter.id} delay={Math.min(i*55,250)} className={"story-chapter "+(i%2?"story-chapter-right":"story-chapter-left")}>
+    <section className="inner-section inner-paper">
+      <div className="container inner-narrow">
+        <Reveal className="inner-section-intro">
+          <div className="inner-kicker">Nossa história</div>
+          <h2>Como tudo começou</h2>
+          <p>Um testemunho contado em capítulos, com espaço para respirar, lembrar e reconhecer cada passo dessa caminhada.</p>
+        </Reveal>
+        <div className="inner-timeline">
+          <div className="inner-timeline-line" aria-hidden/>
+          {story?.map((chapter,i)=><Reveal key={chapter.id} delay={Math.min(i*55,260)} className="inner-timeline-item">
+            <span className="inner-timeline-number">{String(i+1).padStart(2,"0")}</span>
             <article>
-              <span className="story-number">{String(i+1).padStart(2,"0")}</span>
-              <div className="eyebrow">{chapter.eyebrow}</div>
+              {chapter.eyebrow&&<div className="inner-kicker">{chapter.eyebrow}</div>}
               <h3>{chapter.title}</h3>
               <p>{chapter.body}</p>
               {chapter.quote&&<blockquote>{chapter.quote}</blockquote>}
@@ -53,39 +54,29 @@ export default async function SobrePage(){
       </div>
     </section>
 
-    {scripture&&<section className="section scripture-section">
-      <div className="container"><Reveal className="scripture-panel wide"><div className="scripture-symbol">✦</div><div><div className="eyebrow">Uma palavra que acompanha essa história</div><blockquote>“{scripture.verse_text}”</blockquote><strong>{scripture.reference}</strong>{scripture.reflection&&<p>{scripture.reflection}</p>}</div></Reveal></div>
+    {scripture&&<section className="inner-scripture">
+      <div className="container inner-narrow"><Reveal className="inner-scripture-copy"><Sparkles size={20}/><div className="inner-kicker">Uma palavra que acompanha essa história</div><blockquote>“{scripture.verse_text}”</blockquote><strong>{scripture.reference}</strong>{scripture.reflection&&<p>{scripture.reflection}</p>}</Reveal></div>
     </section>}
 
-    <section className="section">
-      <div className="container">
-        <Reveal className="section-heading-row"><div><div className="eyebrow">Memórias</div><h2 className="section-title">Momentos que fazem parte dessa história</h2></div><Link className="text-link" href="/fotos">Ver todas as memórias <Images size={17}/></Link></Reveal>
-        {photos?.length?<div className="about-photo-strip">{photos.map((p,i)=><Reveal key={p.id} delay={i*70} className="about-photo"><img src={p.url} alt={p.alt_text||"Momento do Café com Testemunho"} loading="lazy"/></Reveal>)}</div>:<Reveal><div className="photo-placeholder"><Images size={34}/><strong>Este capítulo também será contado em imagens</strong><span>As fotos dos encontros aparecerão aqui conforme forem sendo cadastradas.</span></div></Reveal>}
-      </div>
-    </section>
-
-    <section className="section founder-testimony-section">
-      <div className="container">
-        <Reveal className="founder-testimony-card">
-          <BookHeart size={34}/>
-          <div className="eyebrow">Testemunho fundador</div>
-          <h2>Leia o relato completo de Kathia Andreia</h2>
-          <p>A narrativa desta página foi construída a partir do próprio testemunho que deu origem ao projeto. O relato completo também está preservado na área de testemunhos.</p>
-          <Link className="btn btn-dark" href="/testemunhos/como-surgiu-o-cafe-com-testemunho">Ler testemunho completo <ArrowRight size={17}/></Link>
-        </Reveal>
-      </div>
-    </section>
-
-    {(instagram?.length||social?.url)&&<section className="section instagram-section">
-      <div className="container">
-        <Reveal className="section-heading-row"><div><div className="eyebrow">A história continua acontecendo</div><h2 className="section-title">@cafe_testemunho</h2></div>{social?.url&&<a className="text-link" href={social.url} target="_blank" rel="noreferrer">Acompanhar no Instagram <Instagram size={17}/></a>}</Reveal>
-        {instagram?.length?<div className="instagram-embed-grid">{instagram.map((p,i)=><Reveal key={p.id} delay={i*80}><InstagramEmbed url={p.post_url}/></Reveal>)}</div>:null}
+    {!!photos?.length&&<section className="inner-section inner-memory-section">
+      <div className="container inner-narrow">
+        <Reveal className="inner-section-head"><div><div className="inner-kicker">Memórias</div><h2>Momentos que fazem parte dessa história</h2></div><Link href="/fotos">Ver todas <ArrowRight size={16}/></Link></Reveal>
+        <div className="inner-photo-strip">{photos.map((photo,i)=><Reveal key={photo.id} delay={i*45}><figure><img src={photo.url} alt={photo.alt_text||"Memória do Café com Testemunho"} loading="lazy"/></figure></Reveal>)}</div>
       </div>
     </section>}
 
-    <section className="section cta-section ambient-bg">
-      <div className="ambient-orb orb-three"/>
-      <div className="container"><Reveal className="cta-panel"><HeartHandshake size={35}/><div className="eyebrow">Faça parte</div><h2>{cta?.title??"Essa história continua sendo escrita"}</h2><p>{cta?.body??"O Café com Testemunho nasceu de um testemunho, mas hoje é formado por muitas histórias. Faça parte do próximo capítulo."}</p><div className="actions"><Link className="btn btn-primary" href="/agenda">Participar de um encontro</Link><Link className="btn btn-ghost-light" href="/enviar-testemunho">Compartilhar meu testemunho</Link>{social?.url&&<a className="btn btn-ghost-light" href={social.url} target="_blank" rel="noreferrer">Instagram</a>}</div></Reveal></div>
+    <section className="inner-founder">
+      <div className="container inner-narrow"><Reveal className="inner-founder-panel">
+        <BookHeart size={25}/>
+        <div className="inner-kicker">Testemunho fundador</div>
+        <h2>{founder?.public_title||"Leia o relato completo de Kathia Andreia"}</h2>
+        <p>{founder?.public_excerpt||"A narrativa desta página nasceu do testemunho que deu origem ao projeto. O relato completo está preservado na área de testemunhos."}</p>
+        <Link href={founder?"/testemunhos/"+founder.slug:"/testemunhos"}>Ler testemunho completo <ArrowRight size={16}/></Link>
+      </Reveal></div>
+    </section>
+
+    <section className="inner-closing">
+      <div className="container inner-narrow"><Reveal className="inner-closing-copy"><HeartHandshake size={26}/><div className="inner-kicker">Faça parte</div><h2>{cta?.title||"Essa história continua sendo escrita"}</h2><p>{cta?.body||"Cada encontro, cada mulher e cada testemunho acrescentam um novo capítulo a essa caminhada."}</p><div className="inner-actions"><Link className="inner-btn primary" href={cta?.cta_url||"/agenda"}>{cta?.cta_label||"Participar de um encontro"} <ArrowRight size={16}/></Link><Link className="inner-btn ghost" href="/enviar-testemunho">Compartilhar meu testemunho</Link></div></Reveal></div>
     </section>
   </main>
 }
