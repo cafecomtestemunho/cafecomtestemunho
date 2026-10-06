@@ -12,7 +12,7 @@ export default async function AdminPage(){
 
   const[
     {data:events},{data:eventGuests},{data:eventSchedule},{data:eventFaqs},
-    {data:testimonials},{data:sections},{data:story},{data:scriptures},
+    {data:testimonials},{data:publications},{data:sections},{data:story},{data:scriptures},
     {data:instagram},{data:photos},{data:albums},{data:social},{data:settings}
   ]=await Promise.all([
     s.from("events").select("*").order("created_at",{ascending:false}),
@@ -20,6 +20,7 @@ export default async function AdminPage(){
     s.from("event_schedule").select("*").order("sort_order"),
     s.from("event_faqs").select("*").order("sort_order"),
     s.from("testimonials").select("id,display_name_original,original_text,publication_consent,status,created_at").order("created_at",{ascending:false}).limit(100),
+    s.from("testimonial_publications").select("*").order("created_at",{ascending:false}),
     s.from("institutional_sections").select("*").order("sort_order"),
     s.from("story_chapters").select("*").order("sort_order"),
     s.from("scripture_spotlights").select("*").order("location").order("sort_order"),
@@ -39,6 +40,7 @@ export default async function AdminPage(){
     initialEventSchedule={eventSchedule||[]}
     initialEventFaqs={eventFaqs||[]}
     initialTestimonials={testimonials||[]}
+    initialPublications={publications||[]}
     initialSections={sections||[]}
     initialStory={story||[]}
     initialScriptures={scriptures||[]}
