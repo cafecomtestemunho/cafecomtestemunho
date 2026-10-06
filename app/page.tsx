@@ -9,7 +9,7 @@ import{CinematicScripture}from"@/components/cinematic-scripture";
 export default async function HomePage(){
  const s=await createServerSupabaseClient(),now=new Date().toISOString();
  const[{data:sections},{data:event},{data:featured},{data:scripture},{data:photos},{data:instagram},{data:social},{data:brandSetting}]=await Promise.all([
-  s.from("institutional_sections").select("*").in("section_key",["home_hero","home_intro","home_cta"]),
+  s.from("institutional_sections").select("*").in("section_key",["home_hero","home_word","home_intro","home_cta"]),
   s.from("events").select("*").eq("status","PUBLICADO").gte("starts_at",now).order("starts_at").limit(1).maybeSingle(),
   s.from("testimonial_publications").select("slug,public_title,public_excerpt,public_display_name,published_at").not("published_at","is",null).order("featured",{ascending:false}).order("published_at",{ascending:false}).limit(2),
   s.from("scripture_spotlights").select("*").eq("location","home").eq("visible",true).order("sort_order").limit(1).maybeSingle(),
@@ -18,7 +18,7 @@ export default async function HomePage(){
   s.from("social_links").select("url").eq("icon_key","instagram").eq("visible",true).order("sort_order").limit(1).maybeSingle(),
   s.from("site_settings").select("value").eq("setting_key","brand").maybeSingle()
  ]);
- const hero=sections?.find(x=>x.section_key==="home_hero"),intro=sections?.find(x=>x.section_key==="home_intro"),cta=sections?.find(x=>x.section_key==="home_cta");
+ const hero=sections?.find(x=>x.section_key==="home_hero"),word=sections?.find(x=>x.section_key==="home_word"),intro=sections?.find(x=>x.section_key==="home_intro"),cta=sections?.find(x=>x.section_key==="home_cta");
  const brand=(brandSetting?.value||{})as{name?:string;logo_url?:string};
  const heroSettings=(hero?.settings||{})as{logo_url?:string};
  const heroLogo=heroSettings.logo_url||brand.logo_url;
@@ -35,7 +35,7 @@ export default async function HomePage(){
    <Reveal className="home3-hero-copy" delay={90}><span className="home3-kicker">{hero?.subtitle||"Fé · acolhimento · testemunho"}</span><h1>{hero?.title&&hero.title!=="Café com Testemunho"?hero.title:"Um lugar para ouvir, acolher e caminhar juntas."}</h1><p>{hero?.body??"Mulheres reunidas para compartilhar histórias, fortalecer a fé e lembrar que nenhum capítulo precisa ser vivido sozinho."}</p><div className="home3-hero-actions"><Link href={hero?.cta_url||"/sobre"}>{hero?.cta_label||"Conheça a história"} <ArrowRight size={17}/></Link><Link href="/agenda">Próximos encontros</Link></div></Reveal>
   </div></header>
   <main id="home-content" className="home3-main">
-   {scripture&&<CinematicScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} logoUrl={brand.logo_url} brandName={brand.name}/>} 
+   {scripture&&<CinematicScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} logoUrl={word?.image_url||null} brandName={brand.name}/>} 
    {intro?.visible!==false&&<section className={"home3-story "+(intro?.image_url?"has-image":"")} style={storyBackground}>
     <div className="home3-story-shade" aria-hidden="true"/>
     <div className="container home3-story-grid">
