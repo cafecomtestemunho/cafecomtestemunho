@@ -131,9 +131,19 @@ export function AdminClient({
   async function createEvent(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();const fd=new FormData(e.currentTarget);const title=String(fd.get("title")||"").trim();
     const slug=slugify(String(fd.get("slug")||title));
-    const{data,error}=await s.from("events").insert({title,slug,summary:String(fd.get("summary")||""),status:"RASCUNHO",created_by:userId,updated_by:userId}).select().single();
+    const date=String(fd.get("event_date")||""),time=String(fd.get("event_time")||"");
+    const starts_at=date?combineLocalDateTime(date,time||"19:00"):null;
+    const admission_type=String(fd.get("admission_type")||"FREE");
+    const{data,error}=await s.from("events").insert({
+      title,slug,summary:String(fd.get("summary")||""),starts_at,status:"RASCUNHO",
+      venue:String(fd.get("venue")||"")||null,address:String(fd.get("address")||"")||null,city:String(fd.get("city")||"")||null,
+      audience:String(fd.get("audience")||"")||null,age_range:String(fd.get("age_range")||"")||null,
+      admission_type,donation_item:String(fd.get("donation_item")||"")||null,
+      created_by:userId,updated_by:userId
+    }).select().single();
     if(error){notify(error.message);return}
-    setEvents([data,...events]);e.currentTarget.reset();await audit("EVENT_CREATED","event",data.id,{slug});notify("Evento criado como rascunho.");
+    setEvents([data,...events]);e.currentTarget.reset();await audit("EVENT_CREATED","event",data.id,{slug});
+    notify("Rascunho criado. Abra o evento abaixo para adicionar capa, participantes, programação e os demais detalhes.");
   }
   async function moderate(id:string,status:string){
     const{data,error}=await s.from("testimonials").update({status,reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",id).select("id,display_name_original,original_text,publication_consent,status,created_at").single();
@@ -253,11 +263,19 @@ export function AdminClient({
       {tab==="events"&&<section className="admin-screen">
         <ModeSwitch mode={mode} setMode={setMode}/>
         <div className="admin-section-intro"><span className="eyebrow">Agenda</span><h2>Eventos</h2><p>{mode==="basic"?"Crie e mantenha os encontros com os dados essenciais.":"Edite todos os campos públicos e técnicos de cada encontro."}</p></div>
-        <details className="admin-create-panel"><summary><Plus size={18}/>Criar novo evento</summary><form className="form" onSubmit={createEvent}>
-          <Field label="Título"><input name="title" required/></Field>
-          <Field label="Slug opcional"><input name="slug" placeholder="Gerado pelo título se vazio"/></Field>
-          <Field label="Resumo"><textarea name="summary"/></Field>
-          <button className="btn btn-dark" type="submit">Criar rascunho</button>
+        <details className="admin-create-panel"><summary><Plus size={18}/>Criar novo evento</summary><form className="form event-create-form" onSubmit={createEvent}>
+          <div className="event-create-note"><strong>1. Crie o rascunho</strong><span>Depois, abra o evento abaixo para completar capa, participantes, programação, FAQ e configurações avançadas.</span></div>
+          <Field label="Título"><input name="title" required placeholder="Nome do encontro"/></Field>
+          <Field label="Resumo"><textarea name="summary" placeholder="Uma apresentação curta do encontro"/></Field>
+          <div className="event-date-grid"><Field label="Data"><input type="date" name="event_date"/></Field><Field label="Horário"><input type="time" name="event_time"/></Field></div>
+          <Field label="Nome do local"><input name="venue" placeholder="Ex.: Salão de Eventos..."/></Field>
+          <Field label="Endereço completo"><input name="address" placeholder="Rua, número e bairro"/></Field>
+          <div className="admin-two-col"><Field label="Cidade"><input name="city" placeholder="Telêmaco Borba"/></Field><Field label="Público"><input name="audience" placeholder="Ex.: Mulheres"/></Field></div>
+          <Field label="Faixa etária"><input name="age_range" placeholder="Ex.: Livre, 16+, adultas"/></Field>
+          <Field label="Tipo de entrada"><select name="admission_type" defaultValue="FREE"><option value="FREE">Gratuita</option><option value="PAID">Paga</option><option value="DONATION">Doação / contribuição</option><option value="REGISTRATION">Inscrição obrigatória</option></select></Field>
+          <Field label="Doação / contribuição, se houver"><input name="donation_item" placeholder="Ex.: 1 kg de alimento não perecível"/></Field>
+          {mode==="advanced"&&<Field label="Slug opcional"><input name="slug" placeholder="Gerado pelo título se vazio"/></Field>}
+          <button className="btn btn-dark" type="submit">Criar e continuar</button>
         </form></details>
         <div className="admin-editor-stack">{events.map(e=><EventEditor key={e.id} event={e} mode={mode} onSave={saveEvent} notify={notify}
           guests={eventGuests.filter(x=>x.event_id===e.id)} schedule={eventSchedule.filter(x=>x.event_id===e.id)} faqs={eventFaqs.filter(x=>x.event_id===e.id)}
