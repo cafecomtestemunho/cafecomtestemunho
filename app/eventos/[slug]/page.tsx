@@ -2,6 +2,7 @@ import{notFound}from"next/navigation";
 import{CalendarDays,Clock3,MapPin,Ticket,UsersRound,ExternalLink,BookOpen}from"lucide-react";
 import{createServerSupabaseClient}from"@/lib/supabase/server";
 import{Reveal}from"@/components/reveal";
+import{EventShareButton}from"@/components/event-share-button";
 
 export default async function EventoPage({params}:{params:Promise<{slug:string}>}){
   const{slug}=await params;
@@ -22,19 +23,30 @@ export default async function EventoPage({params}:{params:Promise<{slug:string}>
     :event.admission_type==="REGISTRATION"?"Inscrição obrigatória":"Entrada gratuita";
 
   return <main>
-    <section className={"event-public-hero "+(event.cover_url?"has-cover":"")}>
-      {event.cover_url&&<img className="event-public-cover" src={event.cover_url} alt=""/>}
-      <div className="event-public-overlay"/>
-      <div className="container event-public-hero-content">
+    <section className="event-public-hero-v2">
+      <div className="container">
         <Reveal>
-          <div className="eyebrow">Encontro</div>
-          {event.event_theme&&<span className="event-theme-pill">{event.event_theme}</span>}
-          <h1>{event.title}</h1>
-          <p>{event.summary}</p>
-          <div className="event-hero-meta">
-            <span><CalendarDays size={18}/>{dateLabel}</span>
-            {event.venue&&<span><MapPin size={18}/>{event.venue}{event.city?" · "+event.city:""}</span>}
-            <span><Ticket size={18}/>{admissionLabel}</span>
+          <div className="event-cover-frame">
+            {event.cover_url?<img className="event-cover-image" src={event.cover_url} alt={"Capa do evento "+event.title}/>:<div className="event-cover-fallback"/>}
+            <div className="event-cover-actions"><EventShareButton title={event.title} text={event.summary||undefined}/></div>
+          </div>
+        </Reveal>
+        <Reveal delay={80}>
+          <div className="event-hero-copy-card">
+            <div className="event-hero-copy-head">
+              <div>
+                <div className="eyebrow">Encontro</div>
+                {event.event_theme&&<span className="event-theme-pill event-theme-pill-light">{event.event_theme}</span>}
+              </div>
+              <EventShareButton title={event.title} text={event.summary||undefined}/>
+            </div>
+            <h1>{event.title}</h1>
+            {event.summary&&<p>{event.summary}</p>}
+            <div className="event-hero-meta event-hero-meta-light">
+              <span><CalendarDays size={18}/>{dateLabel}</span>
+              {event.venue&&<span><MapPin size={18}/>{event.venue}{event.city?" · "+event.city:""}</span>}
+              <span><Ticket size={18}/>{admissionLabel}</span>
+            </div>
           </div>
         </Reveal>
       </div>
