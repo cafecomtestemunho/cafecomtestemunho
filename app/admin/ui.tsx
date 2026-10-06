@@ -443,6 +443,7 @@ function Field({label,children,hint}:{label:string;children:React.ReactNode;hint
 
 function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:EditMode;title:string;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
   const isHomeHero=section.section_key==="home_hero";
+  const isHomeIntro=section.section_key==="home_intro";
   const[t,setT]=useState(section.title||""),[sub,setSub]=useState(section.subtitle||""),[body,setBody]=useState(section.body||""),[visible,setVisible]=useState(section.visible!==false);
   const[image,setImage]=useState(section.image_url||""),[ctaLabel,setCtaLabel]=useState(section.cta_label||""),[ctaUrl,setCtaUrl]=useState(section.cta_url||"");
   const[heroLogo,setHeroLogo]=useState(section.settings?.logo_url||"");
@@ -462,6 +463,12 @@ function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:E
         <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
         <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)} placeholder="Ex.: Conheça a história"/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/sobre"/></Field></div>
+      </>:isHomeIntro?<>
+        <Field label="Imagem de fundo da seção" hint="Use a arte vertical sem texto. No celular ela ocupa toda a seção e recebe o conteúdo por cima. Recomendado: 1080 × 1920 px ou proporção 9:16."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Nossa história"/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)} placeholder="Um projeto que nasceu de um testemunho"/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)} placeholder="Conhecer a história completa"/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/sobre"/></Field></div>
       </>:<>
         <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Subtítulo"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
@@ -470,7 +477,7 @@ function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:E
       </>}
       {mode==="advanced"&&<div className="admin-advanced-box">
         <div className="admin-advanced-label"><SlidersHorizontal size={17}/><strong>Configurações avançadas</strong></div>
-        {!isHomeHero&&<div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>}
+        {!isHomeHero&&!isHomeIntro&&<div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>}
         <div className="admin-two-col"><Field label="Ordem"><input type="number" value={order} onChange={e=>setOrder(e.target.value)}/></Field><Field label="Alinhamento"><select value={alignment} onChange={e=>setAlignment(e.target.value)}><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option></select></Field></div>
         <div className="admin-two-col"><Field label="Tema"><select value={theme} onChange={e=>setTheme(e.target.value)}><option value="default">Padrão</option><option value="light">Claro</option><option value="dark">Escuro</option><option value="warm">Acolhedor</option></select></Field><Field label="Fundo"><select value={background} onChange={e=>setBackground(e.target.value)}><option value="default">Padrão</option><option value="paper">Papel</option><option value="soft">Suave</option><option value="dark">Escuro</option><option value="image">Imagem</option></select></Field></div>
         <Field label="Microanimação"><select value={motion} onChange={e=>setMotion(e.target.value)}><option value="fade">Entrada suave</option><option value="rise">Subir suavemente</option><option value="none">Sem animação</option></select></Field>
