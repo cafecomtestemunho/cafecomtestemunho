@@ -258,28 +258,31 @@ export function AdminClient({
       </section>}
 
       {tab==="events"&&<section className="admin-screen">
-        <ModeSwitch mode={mode} setMode={setMode}/>
-        <div className="admin-section-intro"><span className="eyebrow">Agenda</span><h2>Eventos</h2><p>{mode==="basic"?"Crie e mantenha os encontros com os dados essenciais.":"Edite todos os campos públicos e técnicos de cada encontro."}</p></div>
-        <details className="admin-create-panel"><summary><Plus size={18}/>Criar novo evento</summary><form className="form event-create-form" onSubmit={createEvent}>
-          <div className="event-create-note"><strong>1. Crie o rascunho</strong><span>Depois, abra o evento abaixo para completar capa, participantes, programação, FAQ e configurações avançadas.</span></div>
-          <Field label="Título"><input name="title" required placeholder="Nome do encontro"/></Field>
-          <Field label="Resumo"><textarea name="summary" placeholder="Uma apresentação curta do encontro"/></Field>
-          <div className="event-date-grid"><Field label="Data"><input type="date" name="event_date"/></Field><Field label="Horário"><input type="time" name="event_time"/></Field></div>
-          <Field label="Nome do local"><input name="venue" placeholder="Ex.: Salão de Eventos..."/></Field>
-          <Field label="Endereço completo"><input name="address" placeholder="Rua, número e bairro"/></Field>
-          <div className="admin-two-col"><Field label="Cidade"><input name="city" placeholder="Telêmaco Borba"/></Field><Field label="Público"><input name="audience" placeholder="Ex.: Mulheres"/></Field></div>
-          <Field label="Faixa etária"><input name="age_range" placeholder="Ex.: Livre, 16+, adultas"/></Field>
-          <Field label="Tipo de entrada"><select name="admission_type" defaultValue="FREE"><option value="FREE">Gratuita</option><option value="PAID">Paga</option><option value="DONATION">Doação / contribuição</option><option value="REGISTRATION">Inscrição obrigatória</option></select></Field>
-          <Field label="Doação / contribuição, se houver"><input name="donation_item" placeholder="Ex.: 1 kg de alimento não perecível"/></Field>
-          {mode==="advanced"&&<Field label="Slug opcional"><input name="slug" placeholder="Gerado pelo título se vazio"/></Field>}
-          <button className="btn btn-dark" type="submit">Criar e continuar</button>
-        </form></details>
-        <div className="admin-editor-stack">{events.map(e=><EventEditor key={e.id} event={e} mode={mode} defaultOpen={openedEventId===e.id} onSave={saveEvent} notify={notify}
-          guests={eventGuests.filter(x=>x.event_id===e.id)} schedule={eventSchedule.filter(x=>x.event_id===e.id)} faqs={eventFaqs.filter(x=>x.event_id===e.id)}
-          onAddGuest={addEventGuest} onUpdateGuest={updateEventGuest} onDeleteGuest={deleteEventGuest}
-          onAddSchedule={addScheduleItem} onUpdateSchedule={updateScheduleItem} onDeleteSchedule={deleteScheduleItem}
-          onAddFaq={addEventFaq} onUpdateFaq={updateEventFaq} onDeleteFaq={deleteEventFaq}/>)}
-        {!events.length&&<div className="admin-empty">Nenhum evento cadastrado.</div>}</div>
+        {!selectedEventId?<>
+          <div className="admin-section-intro"><span className="eyebrow">Agenda</span><h2>Eventos</h2><p>Crie um rascunho e complete o evento em etapas. Cada etapa é salva antes de você avançar.</p></div>
+          <form className="event-quick-create" onSubmit={createEvent}>
+            <div><strong>Novo evento</strong><span>Comece apenas pelo nome. O restante será preenchido no wizard.</span></div>
+            <Field label="Nome do evento"><input name="title" required placeholder="Ex.: Café com Testemunho"/></Field>
+            <button className="btn btn-dark" type="submit"><Plus size={17}/>Criar e começar</button>
+          </form>
+          <div className="event-admin-list">{events.map(e=><button key={e.id} className="event-admin-row" onClick={()=>setSelectedEventId(e.id)}>
+            <div className="event-admin-row-main"><span className={"event-status-dot "+String(e.status).toLowerCase()}/><div><strong>{e.title}</strong><span>{e.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(e.starts_at)):"Data ainda não definida"} · {e.status}</span></div></div>
+            <div className="event-progress-mini"><span style={{width:Math.max(8,Math.min(100,Number(e.wizard_step||1)/8*100))+"%"}}/></div>
+            <ChevronRight size={18}/>
+          </button>)}
+          {!events.length&&<div className="admin-empty">Nenhum evento cadastrado.</div>}
+          </div>
+        </>:(()=>{
+          const e=events.find(x=>x.id===selectedEventId);
+          if(!e)return <div className="admin-empty">Evento não encontrado.</div>;
+          return <EventWizard
+            event={e} mode={mode} setMode={setMode} onBack={()=>setSelectedEventId(null)} onSave={saveEvent} notify={notify}
+            guests={eventGuests.filter(x=>x.event_id===e.id)} schedule={eventSchedule.filter(x=>x.event_id===e.id)} faqs={eventFaqs.filter(x=>x.event_id===e.id)}
+            onAddGuest={addEventGuest} onUpdateGuest={updateEventGuest} onDeleteGuest={deleteEventGuest}
+            onAddSchedule={addScheduleItem} onUpdateSchedule={updateScheduleItem} onDeleteSchedule={deleteScheduleItem}
+            onAddFaq={addEventFaq} onUpdateFaq={updateEventFaq} onDeleteFaq={deleteEventFaq}
+          />
+        })()}
       </section>}
 
       {tab==="library"&&<section className="admin-screen">
