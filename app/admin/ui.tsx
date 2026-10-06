@@ -597,7 +597,7 @@ function WizardHeading({icon,title,text}:{icon:React.ReactNode;title:string;text
 function ReviewItem({label,value}:{label:string;value:string}){return <div className="event-review-item"><span>{label}</span><strong>{value}</strong></div>}
 
 const guestRoles=[
-  ["MINISTRATION","Ministração"],["PREACHING","Pregação"],["WORSHIP","Louvor"],["TESTIMONY","Testemunho"],
+  ["MINISTRATION","Ministração"],["PREACHING","Pregadora / Pregação"],["SINGER","Cantora"],["WORSHIP","Louvor / música"],["TESTIMONY","Testemunho"],
   ["PRAYER","Oração"],["HOST","Apresentação"],["GUEST","Convidada"],["OTHER","Outra participação"]
 ] as const;
 
