@@ -139,6 +139,7 @@ export function AdminClient({
   }
 
   const section=(key:string)=>sections.find(x=>x.section_key===key);
+  const homeHero=section("home_hero"),homeIntro=section("home_intro"),homeCta=section("home_cta"),aboutCta=section("about_cta");
   const newCount=testimonials.filter(t=>t.status==="RECEBIDO").length;
 
   return <main className="admin-shell admin-editorial">
@@ -174,9 +175,9 @@ export function AdminClient({
         {tab==="home"&&<div className="admin-content">
           <Intro title="Página inicial" text="Edite os blocos que formam a Home sem precisar lidar com nomes técnicos ou código."/>
           <div className="editor-stack">
-            {section("home_hero")&&<SectionEditor title="Hero principal" description="Primeira mensagem que a visitante vê." section={section("home_hero")} onSave={saveSection}/>}
-            {section("home_intro")&&<SectionEditor title="Introdução do projeto" description="Resumo que apresenta a origem do Café." section={section("home_intro")} onSave={saveSection}/>}
-            {section("home_cta")&&<SectionEditor title="Chamada final" description="Convite para participar do próximo capítulo." section={section("home_cta")} onSave={saveSection}/>}
+            {homeHero&&<SectionEditor title="Hero principal" description="Primeira mensagem que a visitante vê." section={homeHero} onSave={saveSection}/>}
+            {homeIntro&&<SectionEditor title="Introdução do projeto" description="Resumo que apresenta a origem do Café." section={homeIntro} onSave={saveSection}/>}
+            {homeCta&&<SectionEditor title="Chamada final" description="Convite para participar do próximo capítulo." section={homeCta} onSave={saveSection}/>}
           </div>
         </div>}
 
@@ -184,7 +185,7 @@ export function AdminClient({
           <Intro title="História do projeto" text="A página Sobre é organizada como uma narrativa em capítulos. Você pode ajustar título, texto, destaque e ordem visual."/>
           <div className="editor-stack">
             {story.map(ch=><StoryEditor key={ch.id} chapter={ch} onSave={saveStory}/>)}
-            {section("about_cta")&&<SectionEditor title="Encerramento da página Sobre" description="Chamada depois da história e das memórias." section={section("about_cta")} onSave={saveSection}/>}
+            {aboutCta&&<SectionEditor title="Encerramento da página Sobre" description="Chamada depois da história e das memórias." section={aboutCta} onSave={saveSection}/>}
           </div>
         </div>}
 
