@@ -1,3 +1,4 @@
+import"./home-v3.css";
 import Link from"next/link";
 import{ArrowRight,CalendarDays,BookHeart,Instagram,Images,HeartHandshake,MapPin}from"lucide-react";
 import{createServerSupabaseClient}from"@/lib/supabase/server";
