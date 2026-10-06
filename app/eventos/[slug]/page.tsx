@@ -1,8 +1,27 @@
+import type{Metadata}from"next";
 import{notFound}from"next/navigation";
 import{CalendarDays,Clock3,MapPin,Ticket,UsersRound,ExternalLink,BookOpen}from"lucide-react";
 import{createServerSupabaseClient}from"@/lib/supabase/server";
 import{Reveal}from"@/components/reveal";
 import{EventShareButton}from"@/components/event-share-button";
+
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
+  const{slug}=await params;
+  const s=await createServerSupabaseClient();
+  const{data:event}=await s.from("events").select("title,summary,cover_url,slug").eq("slug",slug).maybeSingle();
+  if(!event)return{title:"Evento"};
+  const title=event.title||"Café com Testemunho";
+  const description=event.summary||"Encontro do Café com Testemunho.";
+  const url="https://cafecomtestemunho.vercel.app/eventos/"+event.slug;
+  const images=event.cover_url?[{url:event.cover_url,width:1600,height:900,alt:"Capa do evento "+title}]:[];
+  return{
+    title,
+    description,
+    alternates:{canonical:url},
+    openGraph:{title,description,url,type:"website",siteName:"Café com Testemunho",images},
+    twitter:{card:"summary_large_image",title,description,images:event.cover_url?[event.cover_url]:[]}
+  };
+}
 
 export default async function EventoPage({params}:{params:Promise<{slug:string}>}){
   const{slug}=await params;
@@ -80,15 +99,7 @@ export default async function EventoPage({params}:{params:Promise<{slug:string}>
         </section></Reveal>:null}
       </div>
 
-      <aside className="event-public-side">
-        <div className="event-public-card event-sticky-card">
-          <h2>Informações</h2>
-          <div className="event-detail-row"><CalendarDays size={19}/><div><strong>Data e horário</strong><span>{dateLabel}</span></div></div>
-          {(event.venue||event.address||event.city)&&<div className="event-detail-row"><MapPin size={19}/><div><strong>Local</strong><span>{event.venue}</span><span>{[event.address,event.city].filter(Boolean).join(" · ")}</span>{event.reference&&<small>Referência: {event.reference}</small>}{event.map_url&&<a href={event.map_url} target="_blank" rel="noreferrer">Abrir mapa <ExternalLink size={14}/></a>}</div></div>}
-          <div className="event-detail-row"><Ticket size={19}/><div><strong>Entrada</strong><span>{admissionLabel}</span>{event.entry_info&&<small>{event.entry_info}</small>}</div></div>
-          {event.registration_url&&<a className="btn btn-dark event-register-btn" href={event.registration_url} target="_blank" rel="noreferrer">Fazer inscrição</a>}
-        </div>
-      </aside>
+
     </div></section>
   </main>
 }
