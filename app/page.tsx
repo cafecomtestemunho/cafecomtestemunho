@@ -3,6 +3,7 @@ import{ArrowRight,CalendarDays,BookHeart,Instagram,Images,HeartHandshake}from"lu
 import{createServerSupabaseClient}from"@/lib/supabase/server";
 import{Reveal}from"@/components/reveal";
 import{BrandMark}from"@/components/brand-mark";
+import{InstagramEmbed}from"@/components/instagram-embed";
 
 export default async function HomePage(){
   const s=await createServerSupabaseClient();
@@ -109,7 +110,7 @@ export default async function HomePage(){
       <section className="section instagram-section">
         <div className="container">
           <Reveal className="section-heading-row"><div><div className="eyebrow">Do nosso Instagram</div><h2 className="section-title">@cafe_testemunho</h2></div>{social?.url&&<a className="text-link" href={social.url} target="_blank" rel="noreferrer">Abrir perfil <Instagram size={17}/></a>}</Reveal>
-          {instagram?.length?<div className="grid grid-3">{instagram.map((p,i)=><Reveal key={p.id} delay={i*80}><a className="instagram-card" href={p.post_url} target="_blank" rel="noreferrer">{p.cover_url?<img src={p.cover_url} alt=""/>:<div className="instagram-card-placeholder"><Instagram size={34}/></div>}<div><span>Instagram</span><h3>{p.title||"Publicação do Café"}</h3><p>{p.caption}</p></div></a></Reveal>)}</div>:<Reveal><div className="instagram-empty"><Instagram size={30}/><p>Os posts escolhidos pela equipe aparecerão aqui.</p></div></Reveal>}
+          {instagram?.length?<div className="instagram-embed-grid">{instagram.map((p,i)=><Reveal key={p.id} delay={i*80}><InstagramEmbed url={p.post_url}/></Reveal>)}</div>:<Reveal><div className="instagram-empty"><Instagram size={30}/><p>Os posts escolhidos pela equipe aparecerão aqui.</p></div></Reveal>}
         </div>
       </section>
 
