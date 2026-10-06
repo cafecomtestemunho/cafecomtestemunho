@@ -1,0 +1,35 @@
+{
+  "name": "cafecomtestemunho",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.57.4",
+    "@vercel/blob": "^1.0.2",
+    "bcryptjs": "^3.0.2",
+    "drizzle-orm": "^0.44.5",
+    "jose": "^6.1.0",
+    "lucide-react": "^0.545.0",
+    "next": "^15.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@neon/config": "^0.1.0",
+    "@types/node": "^24.7.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "drizzle-kit": "^0.31.4",
+    "typescript": "^5.9.3"
+  }
+}
