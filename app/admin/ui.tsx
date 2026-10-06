@@ -384,27 +384,185 @@ function StoryEditor({chapter,mode,onSave,notify}:{chapter:AnyRow;mode:EditMode;
   </div></details>
 }
 
-function EventEditor({event,mode,onSave,notify}:{event:AnyRow;mode:EditMode;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
+function EventEditor({
+  event,mode,onSave,notify,guests,schedule,faqs,
+  onAddGuest,onUpdateGuest,onDeleteGuest,onAddSchedule,onUpdateSchedule,onDeleteSchedule,onAddFaq,onUpdateFaq,onDeleteFaq
+}:{
+  event:AnyRow;mode:EditMode;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void;
+  guests:AnyRow[];schedule:AnyRow[];faqs:AnyRow[];
+  onAddGuest:(eventId:string,payload:AnyRow)=>void;onUpdateGuest:(id:string,patch:AnyRow)=>void;onDeleteGuest:(id:string)=>void;
+  onAddSchedule:(eventId:string,payload:AnyRow)=>void;onUpdateSchedule:(id:string,patch:AnyRow)=>void;onDeleteSchedule:(id:string)=>void;
+  onAddFaq:(eventId:string,payload:AnyRow)=>void;onUpdateFaq:(id:string,patch:AnyRow)=>void;onDeleteFaq:(id:string)=>void;
+}){
   const[state,setState]=useState<AnyRow>({...event});
   const set=(key:string,value:any)=>setState((v:AnyRow)=>({...v,[key]:value}));
-  async function upload(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","eventos/capas");notify("Enviando capa...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}set("cover_url",data.url);notify("Capa enviada. Salve o evento.");}
-  return <details className="admin-section-card"><summary><div><span>{event.title}</span><small>{event.status}</small></div><ChevronRight size={18}/></summary><div className="admin-section-body">
-    <Field label="Título"><input value={state.title||""} onChange={e=>set("title",e.target.value)}/></Field>
-    <Field label="Resumo"><textarea value={state.summary||""} onChange={e=>set("summary",e.target.value)}/></Field>
-    <div className="admin-two-col"><Field label="Data e hora"><input type="datetime-local" value={toLocalInput(state.starts_at)} onChange={e=>set("starts_at",e.target.value?new Date(e.target.value).toISOString():null)}/></Field><Field label="Status"><select value={state.status||"RASCUNHO"} onChange={e=>set("status",e.target.value)}><option>RASCUNHO</option><option>AGENDADO</option><option>PUBLICADO</option><option>ENCERRADO</option><option>CANCELADO</option><option>ARQUIVADO</option></select></Field></div>
-    <Field label="Local"><input value={state.venue||""} onChange={e=>set("venue",e.target.value)}/></Field><Field label="Cidade"><input value={state.city||""} onChange={e=>set("city",e.target.value)}/></Field>
-    {mode==="advanced"&&<div className="admin-advanced-box">
-      <Field label="Slug"><input value={state.slug||""} onChange={e=>set("slug",slugifyLocal(e.target.value))}/></Field>
-      <Field label="Capa"><ImagePicker value={state.cover_url||""} onChange={v=>set("cover_url",v)} onUpload={upload}/></Field>
-      <Field label="Descrição completa"><textarea value={state.description||""} onChange={e=>set("description",e.target.value)}/></Field>
-      <Field label="Endereço"><input value={state.address||""} onChange={e=>set("address",e.target.value)}/></Field>
-      <Field label="Referência"><input value={state.reference||""} onChange={e=>set("reference",e.target.value)}/></Field>
-      <Field label="Link do mapa"><input value={state.map_url||""} onChange={e=>set("map_url",e.target.value)}/></Field>
-      <Field label="Informações de entrada"><textarea value={state.entry_info||""} onChange={e=>set("entry_info",e.target.value)}/></Field>
-      <Field label="Data/hora de término"><input type="datetime-local" value={toLocalInput(state.ends_at)} onChange={e=>set("ends_at",e.target.value?new Date(e.target.value).toISOString():null)}/></Field>
-    </div>}
-    <button className="admin-save-button" onClick={()=>onSave(event.id,state)}><Save size={18}/>Salvar evento</button>
+  const startParts=splitLocalDateTime(state.starts_at);
+  const endParts=splitLocalDateTime(state.ends_at);
+  const admission=state.admission_type||"FREE";
+
+  async function uploadCover(file:File){
+    const fd=new FormData();fd.set("file",file);fd.set("folder","eventos/capas");notify("Enviando capa...");
+    const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();
+    if(!res.ok){notify(data.error||"Falha no upload.");return}
+    set("cover_url",data.url);notify("Capa enviada. Salve o evento para aplicar.");
+  }
+  function setStartDate(date:string){set("starts_at",combineLocalDateTime(date,startParts.time||"19:00"))}
+  function setStartTime(time:string){set("starts_at",combineLocalDateTime(startParts.date||todayInput(),time))}
+  function setEndDate(date:string){set("ends_at",date?combineLocalDateTime(date,endParts.time||startParts.time||"21:00"):null)}
+  function setEndTime(time:string){set("ends_at",time?combineLocalDateTime(endParts.date||startParts.date||todayInput(),time):null)}
+
+  return <details className="admin-section-card event-editor-card">
+    <summary><div><span>{event.title}</span><small>{event.status} · {guests.length} participações · {schedule.length} itens na programação</small></div><ChevronRight size={18}/></summary>
+    <div className="admin-section-body event-editor-body">
+      <div className="event-form-section">
+        <div className="event-form-heading"><ImageIcon size={19}/><div><strong>Identidade do evento</strong><span>O que aparece primeiro na página pública.</span></div></div>
+        <Field label="Título do evento"><input value={state.title||""} onChange={e=>set("title",e.target.value)}/></Field>
+        <Field label="Tema ou chamada opcional"><input value={state.event_theme||""} onChange={e=>set("event_theme",e.target.value)} placeholder="Ex.: Uma tarde de fé, louvor e testemunhos"/></Field>
+        <Field label="Resumo curto"><textarea value={state.summary||""} onChange={e=>set("summary",e.target.value)} placeholder="Explique em poucas linhas o que a participante vai viver nesse encontro."/></Field>
+        <Field label="Capa do evento" hint="Recomendado: 1600 × 900 px (16:9), JPG ou WebP. Mantenha rostos e textos importantes no centro da imagem.">
+          <ImagePicker value={state.cover_url||""} onChange={v=>set("cover_url",v)} onUpload={uploadCover}/>
+        </Field>
+      </div>
+
+      <div className="event-form-section">
+        <div className="event-form-heading"><Clock3 size={19}/><div><strong>Data e horário</strong><span>Data e hora são campos separados para funcionar melhor no celular.</span></div></div>
+        <div className="event-date-grid">
+          <Field label="Data"><input type="date" value={startParts.date} onChange={e=>setStartDate(e.target.value)}/></Field>
+          <Field label="Horário"><input type="time" value={startParts.time} onChange={e=>setStartTime(e.target.value)}/></Field>
+        </div>
+        <Field label="Status"><select value={state.status||"RASCUNHO"} onChange={e=>set("status",e.target.value)}><option value="RASCUNHO">Rascunho</option><option value="AGENDADO">Agendado</option><option value="PUBLICADO">Publicado</option><option value="ENCERRADO">Encerrado</option><option value="CANCELADO">Cancelado</option><option value="ARQUIVADO">Arquivado</option></select></Field>
+      </div>
+
+      <div className="event-form-section">
+        <div className="event-form-heading"><MapPin size={19}/><div><strong>Local e público</strong><span>O endereço é cadastrado uma única vez aqui.</span></div></div>
+        <Field label="Nome do local"><input value={state.venue||""} onChange={e=>set("venue",e.target.value)} placeholder="Ex.: Salão de Eventos..."/></Field>
+        <Field label="Endereço completo"><input value={state.address||""} onChange={e=>set("address",e.target.value)} placeholder="Rua, número e bairro"/></Field>
+        <div className="admin-two-col">
+          <Field label="Cidade"><input value={state.city||""} onChange={e=>set("city",e.target.value)} placeholder="Telêmaco Borba"/></Field>
+          <Field label="Ponto de referência"><input value={state.reference||""} onChange={e=>set("reference",e.target.value)} placeholder="Opcional"/></Field>
+        </div>
+        <div className="admin-two-col">
+          <Field label="Público"><input value={state.audience||""} onChange={e=>set("audience",e.target.value)} placeholder="Ex.: Mulheres"/></Field>
+          <Field label="Faixa etária"><input value={state.age_range||""} onChange={e=>set("age_range",e.target.value)} placeholder="Ex.: Livre, 16+, adultas"/></Field>
+        </div>
+      </div>
+
+      <div className="event-form-section">
+        <div className="event-form-heading"><Ticket size={19}/><div><strong>Entrada e participação</strong><span>Defina claramente o que a pessoa precisa para participar.</span></div></div>
+        <Field label="Tipo de entrada"><select value={admission} onChange={e=>set("admission_type",e.target.value)}>
+          <option value="FREE">Gratuita</option>
+          <option value="PAID">Paga</option>
+          <option value="DONATION">Doação / contribuição</option>
+          <option value="REGISTRATION">Inscrição obrigatória</option>
+        </select></Field>
+        {admission==="PAID"&&<div className="admin-two-col"><Field label="Valor (R$)"><input inputMode="decimal" value={state.admission_amount??""} onChange={e=>set("admission_amount",e.target.value)} placeholder="0,00"/></Field><Field label="Como exibir"><input value={state.admission_label||""} onChange={e=>set("admission_label",e.target.value)} placeholder="Ex.: Ingresso antecipado"/></Field></div>}
+        {admission==="DONATION"&&<Field label="O que levar / doar"><input value={state.donation_item||""} onChange={e=>set("donation_item",e.target.value)} placeholder="Ex.: 1 kg de alimento não perecível"/></Field>}
+        {admission==="REGISTRATION"&&<><Field label="Link de inscrição"><input type="url" value={state.registration_url||""} onChange={e=>set("registration_url",e.target.value)} placeholder="https://..."/></Field><label className="admin-check"><input type="checkbox" checked={state.registration_required!==false} onChange={e=>set("registration_required",e.target.checked)}/>Inscrição obrigatória</label></>}
+        <Field label="Observação sobre a entrada"><textarea value={state.entry_info||""} onChange={e=>set("entry_info",e.target.value)} placeholder="Ex.: Entregue a doação na recepção. Vagas limitadas."/></Field>
+      </div>
+
+      <div className="event-form-section">
+        <div className="event-form-heading"><BookHeart size={19}/><div><strong>Sobre o encontro</strong><span>Conteúdo que ajuda a visitante a entender a proposta do evento.</span></div></div>
+        <Field label="Descrição completa"><textarea value={state.description||""} onChange={e=>set("description",e.target.value)} placeholder="Descreva o propósito, o que vai acontecer e qualquer orientação importante."/></Field>
+      </div>
+
+      <div className="event-form-section">
+        <div className="event-form-heading"><UsersRound size={19}/><div><strong>Quem vai participar</strong><span>Ministração, pregação, louvor, testemunhos e outras participações.</span></div></div>
+        <GuestCreate eventId={event.id} onAdd={onAddGuest} notify={notify}/>
+        <div className="event-nested-list">{guests.map(g=><GuestEditor key={g.id} guest={g} onSave={onUpdateGuest} onDelete={onDeleteGuest} notify={notify}/>)}</div>
+      </div>
+
+      <div className="event-form-section">
+        <div className="event-form-heading"><Clock3 size={19}/><div><strong>Programação</strong><span>Monte a sequência do encontro: recepção, louvor, pregação, ministração e encerramento.</span></div></div>
+        <ScheduleCreate eventId={event.id} onAdd={onAddSchedule}/>
+        <div className="event-nested-list">{schedule.map(item=><ScheduleEditor key={item.id} item={item} onSave={onUpdateSchedule} onDelete={onDeleteSchedule}/>)}</div>
+      </div>
+
+      {mode==="advanced"&&<div className="event-form-section advanced">
+        <div className="event-form-heading"><SlidersHorizontal size={19}/><div><strong>Avançado</strong><span>Configurações complementares e técnicas. Os campos básicos não se repetem aqui.</span></div></div>
+        <Field label="Slug da página"><input value={state.slug||""} onChange={e=>set("slug",slugifyLocal(e.target.value))}/></Field>
+        <div className="event-date-grid">
+          <Field label="Data de término"><input type="date" value={endParts.date} onChange={e=>setEndDate(e.target.value)}/></Field>
+          <Field label="Horário de término"><input type="time" value={endParts.time} onChange={e=>setEndTime(e.target.value)}/></Field>
+        </div>
+        <Field label="Link do mapa"><input type="url" value={state.map_url||""} onChange={e=>set("map_url",e.target.value)} placeholder="Google Maps ou outro mapa"/></Field>
+        <div className="admin-two-col"><Field label="Referência bíblica"><input value={state.verse_reference||""} onChange={e=>set("verse_reference",e.target.value)} placeholder="Ex.: Salmos 126:5"/></Field><Field label="Versículo"><input value={state.verse_text||""} onChange={e=>set("verse_text",e.target.value)}/></Field></div>
+        <div className="event-faq-block">
+          <strong>Dúvidas frequentes</strong>
+          <FaqCreate eventId={event.id} onAdd={onAddFaq}/>
+          <div className="event-nested-list">{faqs.map(item=><FaqEditor key={item.id} item={item} onSave={onUpdateFaq} onDelete={onDeleteFaq}/>)}</div>
+        </div>
+      </div>}
+
+      <button className="admin-save-button event-save" onClick={()=>onSave(event.id,{
+        ...state,
+        admission_amount:state.admission_amount===""||state.admission_amount==null?null:Number(String(state.admission_amount).replace(",",".")),
+        registration_required:admission==="REGISTRATION"?state.registration_required!==false:false,
+        published_at:state.status==="PUBLICADO"?(state.published_at||new Date().toISOString()):state.published_at
+      })}><Save size={18}/>Salvar evento</button>
+    </div>
+  </details>
+}
+
+const guestRoles=[
+  ["MINISTRATION","Ministração"],["PREACHING","Pregação"],["WORSHIP","Louvor"],["TESTIMONY","Testemunho"],
+  ["PRAYER","Oração"],["HOST","Apresentação"],["GUEST","Convidada"],["OTHER","Outra participação"]
+] as const;
+
+function GuestCreate({eventId,onAdd,notify}:{eventId:string;onAdd:(eventId:string,payload:AnyRow)=>void;notify:(m:string)=>void}){
+  const[name,setName]=useState(""),[role,setRole]=useState("MINISTRATION"),[bio,setBio]=useState(""),[image,setImage]=useState("");
+  async function upload(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","eventos/participantes");notify("Enviando foto...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setImage(data.url);notify("Foto enviada.");}
+  function add(){if(!name.trim()){notify("Informe o nome da participante.");return}const label=guestRoles.find(x=>x[0]===role)?.[1]||"Participação";onAdd(eventId,{name:name.trim(),role_key:role,role_label:label,bio:bio.trim()||null,image_url:image||null});setName("");setBio("");setImage("");}
+  return <details className="event-add-panel"><summary><Plus size={17}/>Adicionar participação</summary><div className="event-add-body">
+    <Field label="Tipo de participação"><select value={role} onChange={e=>setRole(e.target.value)}>{guestRoles.map(([k,l])=><option key={k} value={k}>{l}</option>)}</select></Field>
+    <Field label="Nome"><input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome da ministrante, pregadora, cantora..."/></Field>
+    <Field label="Apresentação / bio curta"><textarea value={bio} onChange={e=>setBio(e.target.value)} placeholder="Opcional"/></Field>
+    <Field label="Foto" hint="Recomendado: 800 × 800 px, imagem quadrada, JPG ou WebP."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+    <button className="admin-save-button" type="button" onClick={add}><Plus size={17}/>Adicionar ao evento</button>
   </div></details>
+}
+
+function GuestEditor({guest,onSave,onDelete,notify}:{guest:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void;notify:(m:string)=>void}){
+  const[state,setState]=useState<AnyRow>({...guest});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
+  async function upload(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","eventos/participantes");notify("Enviando foto...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}set("image_url",data.url);notify("Foto enviada.");}
+  return <details className="event-item-card"><summary><div>{state.image_url?<img src={state.image_url} alt=""/>:<span className="event-avatar"><UsersRound size={17}/></span>}<div><strong>{state.name}</strong><small>{state.role_label}</small></div></div><ChevronRight size={17}/></summary><div className="event-item-body">
+    <Field label="Tipo"><select value={state.role_key||"OTHER"} onChange={e=>{const role=e.target.value;set("role_key",role);set("role_label",guestRoles.find(x=>x[0]===role)?.[1]||"Participação")}}>{guestRoles.map(([k,l])=><option key={k} value={k}>{l}</option>)}</select></Field>
+    <Field label="Nome"><input value={state.name||""} onChange={e=>set("name",e.target.value)}/></Field>
+    <Field label="Bio curta"><textarea value={state.bio||""} onChange={e=>set("bio",e.target.value)}/></Field>
+    <Field label="Foto"><ImagePicker value={state.image_url||""} onChange={v=>set("image_url",v)} onUpload={upload}/></Field>
+    <Field label="Instagram / link opcional"><input value={state.social_url||""} onChange={e=>set("social_url",e.target.value)}/></Field>
+    <div className="event-item-actions"><button className="admin-save-button" onClick={()=>onSave(guest.id,state)}><Save size={16}/>Salvar</button><button className="event-delete-button" onClick={()=>onDelete(guest.id)}><Trash2 size={16}/>Remover</button></div>
+  </div></details>
+}
+
+function ScheduleCreate({eventId,onAdd}:{eventId:string;onAdd:(eventId:string,payload:AnyRow)=>void}){
+  const[time,setTime]=useState(""),[title,setTitle]=useState(""),[category,setCategory]=useState(""),[description,setDescription]=useState("");
+  function add(){if(!title.trim())return;onAdd(eventId,{time_label:time||null,title:title.trim(),category:category||null,description:description.trim()||null});setTime("");setTitle("");setCategory("");setDescription("");}
+  return <details className="event-add-panel"><summary><Plus size={17}/>Adicionar item da programação</summary><div className="event-add-body">
+    <div className="admin-two-col"><Field label="Horário"><input type="time" value={time} onChange={e=>setTime(e.target.value)}/></Field><Field label="Tipo"><input value={category} onChange={e=>setCategory(e.target.value)} placeholder="Ex.: Louvor"/></Field></div>
+    <Field label="Título"><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ex.: Ministração com ..."/></Field>
+    <Field label="Descrição"><textarea value={description} onChange={e=>setDescription(e.target.value)}/></Field>
+    <button className="admin-save-button" type="button" onClick={add}><Plus size={17}/>Adicionar</button>
+  </div></details>
+}
+
+function ScheduleEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
+  const[state,setState]=useState<AnyRow>({...item});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
+  return <details className="event-item-card"><summary><div><span className="event-time-badge">{state.time_label||"—"}</span><div><strong>{state.title}</strong><small>{state.category}</small></div></div><ChevronRight size={17}/></summary><div className="event-item-body">
+    <div className="admin-two-col"><Field label="Horário"><input type="time" value={state.time_label||""} onChange={e=>set("time_label",e.target.value)}/></Field><Field label="Tipo"><input value={state.category||""} onChange={e=>set("category",e.target.value)}/></Field></div>
+    <Field label="Título"><input value={state.title||""} onChange={e=>set("title",e.target.value)}/></Field><Field label="Descrição"><textarea value={state.description||""} onChange={e=>set("description",e.target.value)}/></Field>
+    <div className="event-item-actions"><button className="admin-save-button" onClick={()=>onSave(item.id,state)}><Save size={16}/>Salvar</button><button className="event-delete-button" onClick={()=>onDelete(item.id)}><Trash2 size={16}/>Remover</button></div>
+  </div></details>
+}
+
+function FaqCreate({eventId,onAdd}:{eventId:string;onAdd:(eventId:string,payload:AnyRow)=>void}){
+  const[q,setQ]=useState(""),[a,setA]=useState("");function add(){if(!q.trim()||!a.trim())return;onAdd(eventId,{question:q.trim(),answer:a.trim()});setQ("");setA("")}
+  return <details className="event-add-panel"><summary><Plus size={17}/>Adicionar dúvida</summary><div className="event-add-body"><Field label="Pergunta"><input value={q} onChange={e=>setQ(e.target.value)}/></Field><Field label="Resposta"><textarea value={a} onChange={e=>setA(e.target.value)}/></Field><button className="admin-save-button" type="button" onClick={add}>Adicionar</button></div></details>
+}
+
+function FaqEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
+  const[q,setQ]=useState(item.question||""),[a,setA]=useState(item.answer||"");
+  return <details className="event-item-card"><summary><div><strong>{q}</strong></div><ChevronRight size={17}/></summary><div className="event-item-body"><Field label="Pergunta"><input value={q} onChange={e=>setQ(e.target.value)}/></Field><Field label="Resposta"><textarea value={a} onChange={e=>setA(e.target.value)}/></Field><div className="event-item-actions"><button className="admin-save-button" onClick={()=>onSave(item.id,{question:q,answer:a})}><Save size={16}/>Salvar</button><button className="event-delete-button" onClick={()=>onDelete(item.id)}><Trash2 size={16}/>Remover</button></div></div></details>
 }
 
 function ScriptureEditor({item,onSave}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void}){
