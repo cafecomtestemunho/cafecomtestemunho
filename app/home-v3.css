@@ -1375,3 +1375,25 @@
     max-height:138px;
   }
 }
+
+
+/* Scripture section — spacing refinement after logo upload */
+@media(max-width:820px){
+  .home3-word{
+    min-height:auto;
+    padding-bottom:54px;
+  }
+  .home3-word-logo-wrap{
+    margin-top:118px;
+    margin-bottom:0;
+  }
+}
+@media(max-width:420px){
+  .home3-word{
+    min-height:auto;
+    padding-bottom:46px;
+  }
+  .home3-word-logo-wrap{
+    margin-top:112px;
+  }
+}
