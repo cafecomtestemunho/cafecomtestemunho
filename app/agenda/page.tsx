@@ -7,10 +7,11 @@ export const metadata={title:"Agenda"};
 
 export default async function AgendaPage(){
   const s=await createServerSupabaseClient();
-  const[{data:events},{data:hero},{data:intro}]=await Promise.all([
+  const[{data:events},{data:hero},{data:intro},{data:cta}]=await Promise.all([
     s.from("events").select("*").in("status",["PUBLICADO","ENCERRADO"]).order("starts_at",{ascending:true}),
     s.from("institutional_sections").select("*").eq("section_key","agenda_hero").maybeSingle(),
-    s.from("institutional_sections").select("*").eq("section_key","agenda_intro").maybeSingle()
+    s.from("institutional_sections").select("*").eq("section_key","agenda_intro").maybeSingle(),
+    s.from("institutional_sections").select("*").eq("section_key","agenda_cta").maybeSingle()
   ]);
   const heroStyle=hero?.image_url?{backgroundImage:`linear-gradient(90deg,rgba(38,19,9,.88),rgba(38,19,9,.52)),url("${hero.image_url}")`}:undefined;
   return <main className="inner-page">
@@ -26,5 +27,6 @@ export default async function AgendaPage(){
         {!events?.length&&<Reveal><div className="inner-empty">Novas datas serão anunciadas em breve.</div></Reveal>}
       </div>
     </div></section>
+    {cta?.visible!==false&&cta?.title&&<section className="inner-mini-cta"><div className="container inner-narrow"><Reveal><div className="inner-mini-cta-copy"><div className="inner-kicker">{cta.subtitle||"Faça parte"}</div><h2>{cta.title}</h2>{cta.body&&<p>{cta.body}</p>}{cta.cta_label&&cta.cta_url&&<Link className="inner-btn dark" href={cta.cta_url}>{cta.cta_label} <ArrowRight size={15}/></Link>}</div></Reveal></div></section>}
   </main>
 }
