@@ -40,7 +40,7 @@ export default async function HomePage(){
     <div className="home3-story-shade" aria-hidden="true"/>
     <div className="container home3-story-grid">
       <Reveal className="home3-story-copy">
-        <div className="home3-story-kicker"><span>{intro?.subtitle||"Nossa história"}</span><i/></div>
+        <div className="home3-story-kicker"><span>Nossa história</span><i/></div>
         <h2><span>{storyTitleLead}</span>{storyLastWord&&<em>{storyLastWord}</em>}</h2>
         <p>{intro?.body??"O Café com Testemunho começou de forma simples e cresceu encontro após encontro, preservando a mesma essência de acolhimento."}</p>
         <Link className="home3-story-link" href={intro?.cta_url||"/sobre"}>{intro?.cta_label||"Conhecer a história completa"} <ArrowRight size={17}/></Link>
