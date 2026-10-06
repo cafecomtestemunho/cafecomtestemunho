@@ -51,6 +51,7 @@ export function AdminClient({
   const[mode,setMode]=useState<EditMode>("basic");
   const[message,setMessage]=useState("");
   const[events,setEvents]=useState(initialEvents);
+  const[openedEventId,setOpenedEventId]=useState<string|null>(null);
   const[eventGuests,setEventGuests]=useState(initialEventGuests);
   const[eventSchedule,setEventSchedule]=useState(initialEventSchedule);
   const[eventFaqs,setEventFaqs]=useState(initialEventFaqs);
@@ -142,8 +143,8 @@ export function AdminClient({
       created_by:userId,updated_by:userId
     }).select().single();
     if(error){notify(error.message);return}
-    setEvents([data,...events]);e.currentTarget.reset();await audit("EVENT_CREATED","event",data.id,{slug});
-    notify("Rascunho criado. Abra o evento abaixo para adicionar capa, participantes, programação e os demais detalhes.");
+    setEvents([data,...events]);setOpenedEventId(data.id);e.currentTarget.reset();await audit("EVENT_CREATED","event",data.id,{slug});
+    notify("Rascunho criado. O editor completo foi aberto abaixo para você continuar.");
   }
   async function moderate(id:string,status:string){
     const{data,error}=await s.from("testimonials").update({status,reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",id).select("id,display_name_original,original_text,publication_consent,status,created_at").single();
@@ -277,7 +278,7 @@ export function AdminClient({
           {mode==="advanced"&&<Field label="Slug opcional"><input name="slug" placeholder="Gerado pelo título se vazio"/></Field>}
           <button className="btn btn-dark" type="submit">Criar e continuar</button>
         </form></details>
-        <div className="admin-editor-stack">{events.map(e=><EventEditor key={e.id} event={e} mode={mode} onSave={saveEvent} notify={notify}
+        <div className="admin-editor-stack">{events.map(e=><EventEditor key={e.id} event={e} mode={mode} defaultOpen={openedEventId===e.id} onSave={saveEvent} notify={notify}
           guests={eventGuests.filter(x=>x.event_id===e.id)} schedule={eventSchedule.filter(x=>x.event_id===e.id)} faqs={eventFaqs.filter(x=>x.event_id===e.id)}
           onAddGuest={addEventGuest} onUpdateGuest={updateEventGuest} onDeleteGuest={deleteEventGuest}
           onAddSchedule={addScheduleItem} onUpdateSchedule={updateScheduleItem} onDeleteSchedule={deleteScheduleItem}
@@ -403,10 +404,10 @@ function StoryEditor({chapter,mode,onSave,notify}:{chapter:AnyRow;mode:EditMode;
 }
 
 function EventEditor({
-  event,mode,onSave,notify,guests,schedule,faqs,
+  event,mode,defaultOpen,onSave,notify,guests,schedule,faqs,
   onAddGuest,onUpdateGuest,onDeleteGuest,onAddSchedule,onUpdateSchedule,onDeleteSchedule,onAddFaq,onUpdateFaq,onDeleteFaq
 }:{
-  event:AnyRow;mode:EditMode;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void;
+  event:AnyRow;mode:EditMode;defaultOpen?:boolean;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void;
   guests:AnyRow[];schedule:AnyRow[];faqs:AnyRow[];
   onAddGuest:(eventId:string,payload:AnyRow)=>void;onUpdateGuest:(id:string,patch:AnyRow)=>void;onDeleteGuest:(id:string)=>void;
   onAddSchedule:(eventId:string,payload:AnyRow)=>void;onUpdateSchedule:(id:string,patch:AnyRow)=>void;onDeleteSchedule:(id:string)=>void;
@@ -429,7 +430,7 @@ function EventEditor({
   function setEndDate(date:string){set("ends_at",date?combineLocalDateTime(date,endParts.time||startParts.time||"21:00"):null)}
   function setEndTime(time:string){set("ends_at",time?combineLocalDateTime(endParts.date||startParts.date||todayInput(),time):null)}
 
-  return <details className="admin-section-card event-editor-card">
+  return <details className="admin-section-card event-editor-card" open={defaultOpen||undefined}>
     <summary><div><span>{event.title}</span><small>{event.status} · {guests.length} participações · {schedule.length} itens na programação</small></div><ChevronRight size={18}/></summary>
     <div className="admin-section-body event-editor-body">
       <div className="event-form-section">
