@@ -442,23 +442,35 @@ function ModeSwitch({mode,setMode}:{mode:EditMode;setMode:(m:EditMode)=>void}){
 function Field({label,children,hint}:{label:string;children:React.ReactNode;hint?:string}){return <div className="field"><label>{label}</label>{children}{hint&&<small className="field-hint">{hint}</small>}</div>}
 
 function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:EditMode;title:string;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
+  const isHomeHero=section.section_key==="home_hero";
   const[t,setT]=useState(section.title||""),[sub,setSub]=useState(section.subtitle||""),[body,setBody]=useState(section.body||""),[visible,setVisible]=useState(section.visible!==false);
   const[image,setImage]=useState(section.image_url||""),[ctaLabel,setCtaLabel]=useState(section.cta_label||""),[ctaUrl,setCtaUrl]=useState(section.cta_url||"");
+  const[heroLogo,setHeroLogo]=useState(section.settings?.logo_url||"");
   const[order,setOrder]=useState(String(section.sort_order??0)),[theme,setTheme]=useState(section.theme||"default"),[alignment,setAlignment]=useState(section.alignment||"left");
   const[background,setBackground]=useState(section.settings?.background_style||"default"),[motion,setMotion]=useState(section.settings?.motion||"fade");
   async function upload(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/secoes");notify("Enviando imagem...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setImage(data.url);notify("Imagem enviada. Salve a seção para aplicar.");}
-  function save(){onSave(section.id,{title:t,subtitle:sub||null,body,image_url:image||null,visible,cta_label:ctaLabel||null,cta_url:ctaUrl||null,sort_order:Number(order)||0,theme,alignment,settings:{...(section.settings||{}),background_style:background,motion}})}
+  async function uploadHeroLogo(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/hero");notify("Enviando logotipo...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setHeroLogo(data.url);notify("Logotipo enviado. Salve a Hero para aplicar.");}
+  function save(){onSave(section.id,{title:t,subtitle:sub||null,body,image_url:image||null,visible,cta_label:ctaLabel||null,cta_url:ctaUrl||null,sort_order:Number(order)||0,theme,alignment,settings:{...(section.settings||{}),background_style:background,motion,logo_url:heroLogo||null}})}
   return <details className="admin-section-card" open={mode==="basic"}>
     <summary><div><span>{title}</span><small>{visible?"Visível":"Oculta"}</small></div><ChevronRight size={18}/></summary>
     <div className="admin-section-body">
       <div className="admin-inline-toggle"><div><strong>Exibir seção</strong><span>Controla se esse bloco aparece no site.</span></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button" aria-label="Alternar visibilidade"><span/></button></div>
-      <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
-      <Field label="Subtítulo"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
-      <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
-      <Field label="Imagem da seção"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+      {isHomeHero?<>
+        <Field label="Imagem de fundo da Hero" hint="Essa imagem ocupa a primeira tela inteira. Prefira uma foto vertical ou com o assunto principal no centro."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Logotipo da Hero" hint="Se ficar vazio, o sistema usa o logotipo principal cadastrado em Ajustes."><ImagePicker value={heroLogo} onChange={setHeroLogo} onUpload={uploadHeroLogo}/></Field>
+        <Field label="Chamada curta"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Ex.: Fé · acolhimento · testemunho"/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)} placeholder="Ex.: Conheça a história"/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/sobre"/></Field></div>
+      </>:<>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Subtítulo"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <Field label="Imagem da seção"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+      </>}
       {mode==="advanced"&&<div className="admin-advanced-box">
         <div className="admin-advanced-label"><SlidersHorizontal size={17}/><strong>Configurações avançadas</strong></div>
-        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>
+        {!isHomeHero&&<div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>}
         <div className="admin-two-col"><Field label="Ordem"><input type="number" value={order} onChange={e=>setOrder(e.target.value)}/></Field><Field label="Alinhamento"><select value={alignment} onChange={e=>setAlignment(e.target.value)}><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option></select></Field></div>
         <div className="admin-two-col"><Field label="Tema"><select value={theme} onChange={e=>setTheme(e.target.value)}><option value="default">Padrão</option><option value="light">Claro</option><option value="dark">Escuro</option><option value="warm">Acolhedor</option></select></Field><Field label="Fundo"><select value={background} onChange={e=>setBackground(e.target.value)}><option value="default">Padrão</option><option value="paper">Papel</option><option value="soft">Suave</option><option value="dark">Escuro</option><option value="image">Imagem</option></select></Field></div>
         <Field label="Microanimação"><select value={motion} onChange={e=>setMotion(e.target.value)}><option value="fade">Entrada suave</option><option value="rise">Subir suavemente</option><option value="none">Sem animação</option></select></Field>
