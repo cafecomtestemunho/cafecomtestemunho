@@ -2,6 +2,7 @@ import type{Metadata}from"next";
 import"./globals.css";
 import{BottomNav}from"@/components/bottom-nav";
 import{PwaRegister}from"@/components/pwa-register";
+import{createServerSupabaseClient}from"@/lib/supabase/server";
 
 export const metadata:Metadata={
   metadataBase:new URL("https://cafecomtestemunho.vercel.app"),
@@ -13,6 +14,8 @@ export const metadata:Metadata={
   robots:{index:true,follow:true}
 };
 
-export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="pt-BR"><body><PwaRegister/><div className="page-shell">{children}</div><BottomNav/></body></html>
+export default async function RootLayout({children}:{children:React.ReactNode}){
+  const s=await createServerSupabaseClient();
+  const{count}=await s.from("media_assets").select("id",{count:"exact",head:true}).eq("media_type","image").eq("is_private",false);
+  return <html lang="pt-BR"><body><PwaRegister/><div className="page-shell">{children}</div><BottomNav showPhotos={(count||0)>0}/></body></html>
 }
