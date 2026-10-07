@@ -3,31 +3,9 @@ import{ArrowRight,BookHeart,HeartHandshake}from"lucide-react";
 import{createServerSupabaseClient}from"@/lib/supabase/server";
 import{Reveal}from"@/components/reveal";
 import{AboutScripture}from"@/components/about-scripture";
+import{SectionWaveDivider}from"@/components/section-wave-divider";
 
 export const metadata={title:"Sobre"};
-
-function AboutDivider({tone,lightSurface="paper",hero=false}:{tone:"light-dark"|"dark-light";lightSurface?:"paper"|"founder"|"memory";hero?:boolean}){
-  const nextColor=tone==="light-dark"
-    ?"#32180d"
-    :lightSurface==="memory"
-      ?"#f3e3d2"
-      :lightSurface==="founder"
-        ?"#fbf4ec"
-        :"#fffaf4";
-
-  return <div className={"about-wave about-wave-"+tone+" about-wave-light-"+lightSurface+(hero?" about-wave-hero":"")} aria-hidden="true">
-    <svg className="about-wave-svg" viewBox="0 0 1200 84" preserveAspectRatio="none">
-      <path
-        className="about-wave-next-fill"
-        fill={nextColor}
-        d="M0 24C185 7 332 12 505 31C703 54 887 54 1200 18V84H0Z"
-      />
-      <path className="about-wave-gold-band" d="M0 24C185 7 332 12 505 31C703 54 887 54 1200 18"/>
-      <path className="about-wave-gold-soft" d="M0 19C185 2 332 7 505 26C703 49 887 49 1200 13"/>
-      <path className="about-wave-gold-line" d="M0 24C185 7 332 12 505 31C703 54 887 54 1200 18"/>
-    </svg>
-  </div>;
-}
 
 export default async function SobrePage(){
   const s=await createServerSupabaseClient();
@@ -59,7 +37,7 @@ export default async function SobrePage(){
         </Reveal>
       </div>
     </section>
-    <AboutDivider tone="dark-light" lightSurface="paper" hero/>
+    <SectionWaveDivider tone="dark-light" lightSurface="paper" hero/>
 
     <section className="inner-section inner-paper">
       <div className="container inner-narrow">
@@ -83,9 +61,9 @@ export default async function SobrePage(){
       </div>
     </section>
 
-    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="light-dark"/>}
+    {wordSection?.visible!==false&&scripture&&<SectionWaveDivider tone="light-dark"/>}
     {wordSection?.visible!==false&&scripture&&<AboutScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} kicker={wordSection?.subtitle}/>} 
-    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="dark-light" lightSurface={hasPhotos?"memory":"founder"}/>}
+    {wordSection?.visible!==false&&scripture&&<SectionWaveDivider tone="dark-light" lightSurface={hasPhotos?"memory":"founder"}/>}
 
 
     {hasPhotos&&<section className="inner-section inner-memory-section">
@@ -113,7 +91,7 @@ export default async function SobrePage(){
     </section>}
 
 
-    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark"/>}
+    {testimonySection?.visible!==false&&cta?.visible!==false&&<SectionWaveDivider tone="light-dark"/>}
 
     {cta?.visible!==false&&<section className="inner-closing">
       <div className="container inner-narrow"><Reveal className="inner-closing-copy"><HeartHandshake size={26}/><div className="inner-kicker">Faça parte</div><h2>{cta?.title||"Essa história continua sendo escrita"}</h2><p>{cta?.body||"Cada encontro, cada mulher e cada testemunho acrescentam um novo capítulo a essa caminhada."}</p><div className="inner-actions"><Link className="inner-btn primary" href={cta?.cta_url||"/agenda"}>{cta?.cta_label||"Participar de um encontro"} <ArrowRight size={16}/></Link><Link className="inner-btn ghost" href="/enviar-testemunho">Compartilhar meu testemunho</Link></div></Reveal></div>
