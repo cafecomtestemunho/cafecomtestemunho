@@ -14,7 +14,7 @@ type MainTab="dashboard"|"events"|"testimonials"|"gallery"|"pages"|"settings";
 type PageKey="home"|"about"|"agenda"|"photos"|"testimonials"|"submit";
 
 const pages:{key:PageKey;label:string;description:string;sections:string[];special?:string}[]=[
-  {key:"home",label:"Página inicial",description:"Hero, história, Palavra, encontro, fotos, testemunhos, Instagram e chamada final.",sections:["home_hero","home_intro","home_word","home_event","home_photos","home_testimonials","home_instagram","home_cta"]},
+  {key:"home",label:"Página inicial",description:"Hero, apresentação, Palavra e chamada final.",sections:["home_hero","home_intro","home_word","home_cta"]},
   {key:"about",label:"Sobre",description:"Hero delicada, história em capítulos, Palavra, memórias, testemunho fundador e CTA.",sections:["about_mission","about_word","about_photos","about_testimony","about_cta"],special:"story"},
   {key:"agenda",label:"Agenda",description:"Hero, introdução e chamada da página de encontros.",sections:["agenda_hero","agenda_intro","agenda_cta"]},
   {key:"photos",label:"Fotos",description:"Imagem da Hero da galeria pública.",sections:["photos_hero"]},
