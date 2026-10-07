@@ -31,7 +31,7 @@ export default async function TestemunhosPage(){
       </div>
     </section>
 
-    <SectionWaveDivider tone="dark-light" lightSurface="paper" hero/>
+    <SectionWaveDivider tone="dark-light" lightSurface="founder" hero/>
 
     <section className="testimonials-founder-section">
       <div className="container inner-narrow">
