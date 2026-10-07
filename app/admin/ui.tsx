@@ -3,6 +3,7 @@
 import{useMemo,useRef,useState}from"react";
 import{GalleryBulkUpload}from"./gallery-upload";
 import{createClient}from"@/lib/supabase/client";
+import{prepareImageForUpload}from"@/lib/client-image";
 import{
   PanelsTopLeft,CalendarDays,Settings2,ChevronLeft,ChevronRight,
   Image as ImageIcon,Upload,Save,Plus,BookHeart,Instagram,MessageSquareQuote,
@@ -1012,10 +1013,26 @@ function ContactSettings({value,onSave}:{value:AnyRow;onSave:(v:AnyRow)=>void}){
 function SocialEditor({item,onSave}:{item:AnyRow;onSave:(id:string,url:string)=>void}){const[url,setUrl]=useState(item.url||"");return <div className="admin-inline-editor"><strong>{item.label}</strong><input value={url} onChange={e=>setUrl(e.target.value)}/><button onClick={()=>onSave(item.id,url)}><Save size={16}/></button></div>}
 function SettingCard({title,children}:{title:string;children:React.ReactNode}){return <details className="admin-settings-card"><summary><span>{title}</span><ChevronRight size={17}/></summary><div className="admin-settings-body">{children}</div></details>}
 
-function ImagePicker({value,onChange,onUpload}:{value:string;onChange:(v:string)=>void;onUpload:(file:File)=>void}){
+function ImagePicker({value,onChange,onUpload}:{value:string;onChange:(v:string)=>void;onUpload:(file:File)=>void|Promise<void>}){
+  const[preparing,setPreparing]=useState(false);
+  const[uploadError,setUploadError]=useState("");
+  async function choose(file?:File){
+    if(!file)return;
+    setPreparing(true);
+    setUploadError("");
+    try{
+      const prepared=await prepareImageForUpload(file);
+      await onUpload(prepared.file);
+    }catch(error){
+      setUploadError(error instanceof Error?error.message:"Não foi possível preparar a imagem.");
+    }finally{
+      setPreparing(false);
+    }
+  }
   return <div className="admin-image-picker">
     {value?<div className="admin-image-preview"><img src={value} alt="Prévia"/><button type="button" onClick={()=>onChange("")}>Remover</button></div>:<div className="admin-image-empty"><ImageIcon size={24}/><span>Nenhuma imagem</span></div>}
-    <label className="admin-upload-label"><Upload size={17}/>Escolher imagem<input type="file" accept="image/*" onChange={e=>{const f=e.target.files?.[0];if(f)onUpload(f)}}/></label>
+    <label className={"admin-upload-label"+(preparing?" is-busy":"")}><Upload size={17}/>{preparing?"Otimizando imagem…":"Escolher imagem"}<input type="file" accept="image/*" disabled={preparing} onChange={e=>{const f=e.currentTarget.files?.[0];void choose(f);e.currentTarget.value=""}}/></label>
+    {uploadError&&<small className="admin-upload-error">{uploadError}</small>}
     <input className="admin-url-input" value={value} onChange={e=>onChange(e.target.value)} placeholder="Ou cole a URL da imagem"/>
   </div>
 }

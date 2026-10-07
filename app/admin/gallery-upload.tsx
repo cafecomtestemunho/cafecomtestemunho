@@ -2,6 +2,7 @@
 
 import{useState}from"react";
 import{Upload,Archive,Images}from"lucide-react";
+import{isSupportedImage,prepareImageForUpload,guessImageMime}from"@/lib/client-image";
 
 type AnyRow=Record<string,any>;
 
@@ -15,9 +16,11 @@ export function GalleryBulkUpload({
   const[albumId,setAlbumId]=useState("");
   const[files,setFiles]=useState<File[]>([]);
   const[progress,setProgress]=useState<{done:number;total:number}|null>(null);
+  const[preparing,setPreparing]=useState(false);
 
   async function expandSelection(selection:File[]){
     const output:File[]=[];
+    let optimizedCount=0;
     for(const file of selection){
       if(file.name.toLowerCase().endsWith(".zip")||file.type==="application/zip"||file.type==="application/x-zip-compressed"){
         if(file.size>50*1024*1024)throw new Error("O ZIP deve ter no máximo 50 MB.");
@@ -27,25 +30,34 @@ export function GalleryBulkUpload({
         for(const entry of entries){
           const blob=await entry.async("blob");
           const name=entry.name.split("/").pop()||"foto";
-          output.push(new File([blob],name,{type:blob.type||guessMime(name)}));
+          const prepared=await prepareImageForUpload(new File([blob],name,{type:blob.type||guessImageMime(name)}));
+          output.push(prepared.file);
+          if(prepared.optimized)optimizedCount++;
+          if(output.length>80)throw new Error("Envie no máximo 80 fotos por lote.");
         }
       }else if(isSupportedImage(file)){
-        if(file.size>8*1024*1024)throw new Error(`${file.name}: a imagem deve ter no máximo 8 MB.`);
-        output.push(normalizeImageFile(file));
+        const prepared=await prepareImageForUpload(file);
+        output.push(prepared.file);
+        if(prepared.optimized)optimizedCount++;
       }
       if(output.length>80)throw new Error("Envie no máximo 80 fotos por lote.");
     }
-    return output;
+    return{files:output,optimizedCount};
   }
 
   async function choose(list:FileList|null){
     if(!list)return;
+    setPreparing(true);
+    notify("Preparando imagens para envio...");
     try{
-      const expanded=await expandSelection(Array.from(list));
-      setFiles(expanded);
-      notify(expanded.length?`${expanded.length} foto${expanded.length===1?"":"s"} pronta${expanded.length===1?"":"s"} para enviar.`:"Nenhuma imagem válida encontrada.");
+      const result=await expandSelection(Array.from(list));
+      setFiles(result.files);
+      notify(result.files.length?`${result.files.length} foto${result.files.length===1?"":"s"} pronta${result.files.length===1?"":"s"} para enviar.${result.optimizedCount?` ${result.optimizedCount} otimizada${result.optimizedCount===1?"":"s"} automaticamente.`:""}`:"Nenhuma imagem válida encontrada.");
     }catch(error){
-      notify(error instanceof Error?error.message:"Não foi possível abrir o ZIP. Verifique se ele contém imagens JPG, PNG ou WebP.");
+      setFiles([]);
+      notify(error instanceof Error?error.message:"Não foi possível preparar as imagens para envio.");
+    }finally{
+      setPreparing(false);
     }
   }
 
@@ -86,9 +98,9 @@ export function GalleryBulkUpload({
 
     <label className="admin-gallery-drop">
       <Upload size={20}/>
-      <span>Selecionar fotos ou ZIP</span>
-      <small>JPG, PNG, WebP ou ZIP · até 8 MB por imagem</small>
-      <input type="file" multiple accept="image/*,.zip,application/zip" onChange={e=>choose(e.target.files)}/>
+      <span>{preparing?"Otimizando imagens…":"Selecionar fotos ou ZIP"}</span>
+      <small>JPG, PNG, WebP, GIF ou ZIP · imagens grandes são otimizadas automaticamente</small>
+      <input type="file" multiple accept="image/*,.zip,application/zip" disabled={preparing||!!progress} onChange={e=>{const list=e.currentTarget.files;void choose(list);e.currentTarget.value=""}}/>
     </label>
 
     {files.length>0&&<div className="admin-gallery-selection">
@@ -109,25 +121,9 @@ export function GalleryBulkUpload({
       <div><span style={{width:(progress.done/progress.total*100)+"%"}}/></div>
     </div>}
 
-    <button className="admin-primary-action" type="button" disabled={!files.length||!!progress} onClick={upload}>
-      {progress?"Enviando…":`Enviar ${files.length||""} foto${files.length===1?"":"s"}`}
+    <button className="admin-primary-action" type="button" disabled={!files.length||!!progress||preparing} onClick={upload}>
+      {preparing?"Otimizando…":progress?"Enviando…":`Enviar ${files.length||""} foto${files.length===1?"":"s"}`}
     </button>
   </section>;
 }
 
-function isSupportedImage(file:File){
-  return file.type.startsWith("image/")||/\.(jpe?g|png|webp|gif)$/i.test(file.name);
-}
-
-function normalizeImageFile(file:File){
-  if(file.type.startsWith("image/"))return file;
-  return new File([file],file.name,{type:guessMime(file.name),lastModified:file.lastModified});
-}
-
-function guessMime(name:string){
-  const ext=name.toLowerCase().split(".").pop();
-  if(ext==="png")return"image/png";
-  if(ext==="webp")return"image/webp";
-  if(ext==="gif")return"image/gif";
-  return"image/jpeg";
-}

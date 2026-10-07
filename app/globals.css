@@ -6163,3 +6163,7 @@
   font-size:.72rem;
   font-weight:820;
 }
+
+
+.admin-upload-label.is-busy{opacity:.72;cursor:progress}
+.admin-upload-error{display:block;margin-top:7px;color:#8f2f24;font-size:.72rem;font-weight:700;line-height:1.35}

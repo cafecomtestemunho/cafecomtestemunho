@@ -18,7 +18,7 @@ export async function POST(request:Request){
   const allowedByMime=file.type.startsWith("image/");
   const allowedByExtension=/\.(jpe?g|png|webp|gif)$/i.test(file.name);
   if(!allowedByMime&&!allowedByExtension)return Response.json({error:"Envie uma imagem JPG, JPEG, PNG, WebP ou GIF."},{status:400});
-  if(file.size>8*1024*1024)return Response.json({error:"A imagem deve ter no máximo 8 MB."},{status:400});
+  if(file.size>4*1024*1024)return Response.json({error:"A imagem ficou grande demais após a otimização. Tente novamente."},{status:413});
 
   const safe=file.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9._-]+/g,"-");
   const uploadFile=allowedByMime?file:new File([file],file.name,{type:guessMime(file.name),lastModified:file.lastModified});
