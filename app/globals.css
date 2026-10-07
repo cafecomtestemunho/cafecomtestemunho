@@ -6117,3 +6117,35 @@
 .event-wizard-actions{
   bottom:10px!important;
 }
+
+
+/* Admin compact settings cards */
+.admin-settings-card{
+  padding:0!important;
+  overflow:hidden;
+}
+.admin-settings-card>summary{
+  list-style:none;
+  min-height:52px;
+  padding:0 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  cursor:pointer;
+  color:#4a2c19;
+  font-size:.86rem;
+  font-weight:850;
+}
+.admin-settings-card>summary::-webkit-details-marker{display:none}
+.admin-settings-card>summary svg{
+  transition:transform .2s ease;
+}
+.admin-settings-card[open]>summary svg{
+  transform:rotate(90deg);
+}
+.admin-settings-body{
+  display:grid;
+  gap:12px;
+  padding:0 14px 14px;
+}
