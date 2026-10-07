@@ -7,9 +7,14 @@ import{AboutScripture}from"@/components/about-scripture";
 export const metadata={title:"Sobre"};
 
 function AboutDivider({tone}:{tone:"light-dark"|"dark-light"|"light-light"|"light-dark-final"}){
-  return <div className={"about-divider-ref about-divider-ref-"+tone} aria-hidden="true">
-    <div className="about-divider-ref-curve"/>
-    <div className="about-divider-ref-branch"/>
+  const floral=tone==="light-dark-final";
+  return <div className={"about-wave-divider about-wave-"+tone} aria-hidden="true">
+    {floral&&<><div className="about-wave-floral about-wave-floral-left"/><div className="about-wave-floral about-wave-floral-right"/></>}
+    <svg className="about-wave-svg" viewBox="0 0 1200 100" preserveAspectRatio="none">
+      <path className="about-wave-soft" d="M0 48 C180 16 330 72 520 50 C720 26 860 68 1200 28 L1200 100 L0 100 Z"/>
+      <path className="about-wave-main" d="M0 62 C210 28 360 82 555 58 C760 34 925 76 1200 42 L1200 100 L0 100 Z"/>
+      <path className="about-wave-line" d="M0 54 C210 22 360 76 555 52 C760 28 925 70 1200 36"/>
+    </svg>
   </div>;
 }
 
@@ -79,11 +84,11 @@ export default async function SobrePage(){
     </section>}
 
 
-    {testimonySection?.visible!==false&&<section className={"founder-reference founder-reference-waves "+(!hasPhotos?"founder-reference-from-dark":"")}>
+    {hasPhotos&&<AboutDivider tone="light-light"/>}
+
+    {testimonySection?.visible!==false&&<section className="founder-reference">
       <div className="founder-reference-branch founder-reference-branch-a" aria-hidden="true"/>
       <div className="founder-reference-branch founder-reference-branch-b" aria-hidden="true"/>
-      <div className="founder-reference-wave founder-reference-wave-top" aria-hidden="true"/>
-      <div className="founder-reference-wave founder-reference-wave-bottom" aria-hidden="true"/>
       <div className="container inner-narrow">
         <Reveal className="founder-reference-content">
           <div className="founder-reference-icon" aria-hidden="true"><BookHeart size={19}/></div>
@@ -99,6 +104,8 @@ export default async function SobrePage(){
       </div>
     </section>}
 
+
+    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark-final"/>}
 
     {cta?.visible!==false&&<section className="inner-closing">
       <div className="container inner-narrow"><Reveal className="inner-closing-copy"><HeartHandshake size={26}/><div className="inner-kicker">Faça parte</div><h2>{cta?.title||"Essa história continua sendo escrita"}</h2><p>{cta?.body||"Cada encontro, cada mulher e cada testemunho acrescentam um novo capítulo a essa caminhada."}</p><div className="inner-actions"><Link className="inner-btn primary" href={cta?.cta_url||"/agenda"}>{cta?.cta_label||"Participar de um encontro"} <ArrowRight size={16}/></Link><Link className="inner-btn ghost" href="/enviar-testemunho">Compartilhar meu testemunho</Link></div></Reveal></div>
