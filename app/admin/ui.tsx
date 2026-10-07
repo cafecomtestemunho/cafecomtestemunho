@@ -473,7 +473,7 @@ export function AdminClient({
         </div>
 
         <div className="admin-settings-secondary">
-          <div className="admin-inline-heading"><div><strong>Instagram</strong><span>Links de posts ou Reels exibidos no site.</span></div></div>
+          <div className="admin-inline-heading"><div><strong>Publicações do Instagram</strong><span>Posts ou Reels selecionados para aparecer no site.</span></div></div>
           <details className="admin-create-panel"><summary><Plus size={17}/>Adicionar publicação</summary><form className="form" onSubmit={addInstagram}>
             <Field label="Link do post ou Reel"><input name="post_url" type="url" required placeholder="https://www.instagram.com/p/..."/></Field>
             <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option></select></Field>
@@ -966,10 +966,10 @@ function BrandSettings({value,onSave,notify}:{value:AnyRow;onSave:(v:AnyRow)=>vo
 }
 function ContactSettings({value,onSave}:{value:AnyRow;onSave:(v:AnyRow)=>void}){
   const[state,setState]=useState<AnyRow>({...value});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
-  return <div className="form"><Field label="Instagram"><input value={state.instagram||""} onChange={e=>set("instagram",e.target.value)}/></Field><Field label="WhatsApp"><input value={state.whatsapp||""} onChange={e=>set("whatsapp",e.target.value)}/></Field><Field label="E-mail"><input value={state.email||""} onChange={e=>set("email",e.target.value)}/></Field><button className="admin-save-button" onClick={()=>onSave(state)}><Save size={18}/>Salvar contato</button></div>
+  return <div className="form"><Field label="WhatsApp"><input value={state.whatsapp||""} onChange={e=>set("whatsapp",e.target.value)}/></Field><Field label="E-mail"><input value={state.email||""} onChange={e=>set("email",e.target.value)}/></Field><button className="admin-save-button" onClick={()=>onSave(state)}><Save size={17}/>Salvar contato</button></div>
 }
 function SocialEditor({item,onSave}:{item:AnyRow;onSave:(id:string,url:string)=>void}){const[url,setUrl]=useState(item.url||"");return <div className="admin-inline-editor"><strong>{item.label}</strong><input value={url} onChange={e=>setUrl(e.target.value)}/><button onClick={()=>onSave(item.id,url)}><Save size={16}/></button></div>}
-function SettingCard({title,children}:{title:string;children:React.ReactNode}){return <section className="admin-settings-card"><h3>{title}</h3>{children}</section>}
+function SettingCard({title,children}:{title:string;children:React.ReactNode}){return <details className="admin-settings-card"><summary><span>{title}</span><ChevronRight size={17}/></summary><div className="admin-settings-body">{children}</div></details>}
 
 function ImagePicker({value,onChange,onUpload}:{value:string;onChange:(v:string)=>void;onUpload:(file:File)=>void}){
   return <div className="admin-image-picker">
