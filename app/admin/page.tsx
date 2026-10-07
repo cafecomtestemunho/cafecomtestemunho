@@ -13,7 +13,7 @@ export default async function AdminPage(){
   const[
     {data:events},{data:eventGuests},{data:eventSchedule},{data:eventFaqs},
     {data:testimonials},{data:publications},{data:sections},{data:story},{data:scriptures},
-    {data:instagram},{data:photos},{data:albums},{data:social},{data:settings}
+    {data:instagram},{data:photos},{data:albums},{data:social},{data:settings},{count:photoCount},{count:publicPhotoCount}
   ]=await Promise.all([
     s.from("events").select("*").order("created_at",{ascending:false}),
     s.from("event_guests").select("*").order("sort_order"),
@@ -28,7 +28,9 @@ export default async function AdminPage(){
     s.from("media_assets").select("*").eq("media_type","image").order("created_at",{ascending:false}).limit(160),
     s.from("photo_albums").select("*").order("sort_order").order("created_at",{ascending:false}),
     s.from("social_links").select("*").order("sort_order"),
-    s.from("site_settings").select("*").order("setting_key")
+    s.from("site_settings").select("*").order("setting_key"),
+    s.from("media_assets").select("id",{count:"exact",head:true}).eq("media_type","image"),
+    s.from("media_assets").select("id",{count:"exact",head:true}).eq("media_type","image").eq("is_private",false)
   ]);
 
   return <AdminClient
@@ -49,5 +51,7 @@ export default async function AdminPage(){
     initialAlbums={albums||[]}
     initialSocial={social||[]}
     initialSettings={settings||[]}
+    initialPhotoCount={photoCount||0}
+    initialPublicPhotoCount={publicPhotoCount||0}
   />
 }

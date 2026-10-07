@@ -1,25 +1,24 @@
 "use client";
 
 import{useMemo,useRef,useState}from"react";
+import{GalleryBulkUpload}from"./gallery-upload";
 import{createClient}from"@/lib/supabase/client";
 import{
-  Home,PanelsTopLeft,CalendarDays,LibraryBig,Settings2,ChevronLeft,ChevronRight,
-  Image as ImageIcon,Upload,Save,Plus,Eye,EyeOff,BookHeart,Instagram,MessageSquareQuote,
-  Images,LogOut,ExternalLink,SlidersHorizontal,LayoutDashboard,UsersRound,Clock3,Ticket,MapPin,Trash2
+  PanelsTopLeft,CalendarDays,Settings2,ChevronLeft,ChevronRight,
+  Image as ImageIcon,Upload,Save,Plus,BookHeart,Instagram,MessageSquareQuote,
+  Images,LogOut,ExternalLink,LayoutDashboard,UsersRound,Clock3,Ticket,Trash2
 }from"lucide-react";
 
 type AnyRow=Record<string,any>;
-type MainTab="dashboard"|"pages"|"events"|"library"|"settings";
-type EditMode="basic"|"advanced";
+type MainTab="dashboard"|"events"|"testimonials"|"gallery"|"pages"|"settings";
 type PageKey="home"|"about"|"agenda"|"photos"|"testimonials"|"submit";
-type LibraryKey="photos"|"testimonials"|"scripture"|"instagram";
 
 const pages:{key:PageKey;label:string;description:string;sections:string[];special?:string}[]=[
-  {key:"home",label:"Página inicial",description:"Hero, história, Palavra, encontro, fotos, testemunhos, Instagram e chamada final.",sections:["home_hero","home_intro","home_word","home_event","home_photos","home_testimonials","home_instagram","home_cta"]},
+  {key:"home",label:"Página inicial",description:"Hero, apresentação, Palavra e chamada final.",sections:["home_hero","home_intro","home_word","home_cta"]},
   {key:"about",label:"Sobre",description:"Hero delicada, história em capítulos, Palavra, memórias, testemunho fundador e CTA.",sections:["about_mission","about_word","about_photos","about_testimony","about_cta"],special:"story"},
   {key:"agenda",label:"Agenda",description:"Hero, introdução e chamada da página de encontros.",sections:["agenda_hero","agenda_intro","agenda_cta"]},
-  {key:"photos",label:"Fotos",description:"Hero, introdução e chamada da galeria de memórias.",sections:["photos_hero","photos_intro","photos_cta"]},
-  {key:"testimonials",label:"Testemunhos",description:"Hero, introdução e chamada da página de testemunhos.",sections:["testimonials_hero","testimonials_intro","testimonials_cta"]},
+  {key:"photos",label:"Fotos",description:"Imagem da Hero da galeria pública.",sections:["photos_hero"]},
+  {key:"testimonials",label:"Testemunhos",description:"Imagem da Hero e chamada final da página de testemunhos.",sections:["testimonials_hero","testimonials_cta"]},
   {key:"submit",label:"Enviar testemunho",description:"Hero, introdução e bloco de privacidade do formulário.",sections:["submit_testimonial_hero","submit_testimonial_intro","submit_testimonial_privacy"]}
 ];
 
@@ -36,19 +35,20 @@ const sectionNames:Record<string,string>={
 
 export function AdminClient({
   userId,userEmail,roles,initialEvents,initialEventGuests,initialEventSchedule,initialEventFaqs,initialTestimonials,initialPublications,initialSections,initialStory,
-  initialScriptures,initialInstagram,initialPhotos,initialAlbums,initialSocial,initialSettings
+  initialScriptures,initialInstagram,initialPhotos,initialAlbums,initialSocial,initialSettings,initialPhotoCount,initialPublicPhotoCount
 }:{
   userId:string;userEmail:string;roles:string[];
   initialEvents:AnyRow[];initialEventGuests:AnyRow[];initialEventSchedule:AnyRow[];initialEventFaqs:AnyRow[];
   initialTestimonials:AnyRow[];initialPublications:AnyRow[];initialSections:AnyRow[];initialStory:AnyRow[];
   initialScriptures:AnyRow[];initialInstagram:AnyRow[];initialPhotos:AnyRow[];initialAlbums:AnyRow[];
-  initialSocial:AnyRow[];initialSettings:AnyRow[];
+  initialSocial:AnyRow[];initialSettings:AnyRow[];initialPhotoCount:number;initialPublicPhotoCount:number;
 }){
   const s=useMemo(()=>createClient(),[]);
   const[tab,setTab]=useState<MainTab>("dashboard");
   const[selectedPage,setSelectedPage]=useState<PageKey|null>(null);
-  const[selectedLibrary,setSelectedLibrary]=useState<LibraryKey>("photos");
-  const[mode,setMode]=useState<EditMode>("basic");
+  const[selectedTestimonialId,setSelectedTestimonialId]=useState<string|null>(null);
+  const[testimonialView,setTestimonialView]=useState<"new"|"review"|"published"|"archived">("new");
+  const[eventView,setEventView]=useState<"all"|"draft"|"published"|"closed">("all");
   const[message,setMessage]=useState("");
   const[events,setEvents]=useState(initialEvents);
   const[selectedEventId,setSelectedEventId]=useState<string|null>(null);
@@ -62,6 +62,9 @@ export function AdminClient({
   const[scriptures,setScriptures]=useState(initialScriptures);
   const[instagram,setInstagram]=useState(initialInstagram);
   const[photos,setPhotos]=useState(initialPhotos);
+  const[photoTotal,setPhotoTotal]=useState(initialPhotoCount);
+  const[publicPhotoTotal,setPublicPhotoTotal]=useState(initialPublicPhotoCount);
+  const[loadingMorePhotos,setLoadingMorePhotos]=useState(false);
   const[albums,setAlbums]=useState(initialAlbums);
   const[social,setSocial]=useState(initialSocial);
   const[settings,setSettings]=useState(initialSettings);
@@ -168,17 +171,24 @@ export function AdminClient({
     }
     setTestimonials(current=>current.map(t=>t.id===id?data:t));await audit("TESTIMONIAL_STATUS_CHANGED","testimonial",id,{status});notify("Testemunho atualizado.");
   }
-  async function publish(t:AnyRow){
-    if(t.publication_consent==="PRIVATE_ONLY"){notify("Este testemunho não autoriza publicação.");return}
+  async function preparePublication(t:AnyRow){
+    if(t.publication_consent==="PRIVATE_ONLY"){notify("Este testemunho foi enviado somente para leitura privada.");return}
     const title=(t.original_text.split(/[.!?\n]/)[0]||"Testemunho").trim().slice(0,90);
     const slug=(slugify(title)||"testemunho")+"-"+String(t.id).slice(0,8);
     const display=t.publication_consent==="ANONYMOUS"?"Anônimo":(t.display_name_original||"Anônimo");
     const excerpt=t.original_text.replace(/\s+/g," ").slice(0,220);
-    const{data:pub,error}=await s.from("testimonial_publications").upsert({testimonial_id:t.id,slug,public_title:title,public_excerpt:excerpt,public_text:t.original_text,public_display_name:display,published_at:new Date().toISOString(),edited_by:userId},{onConflict:"testimonial_id"}).select().single();
+    const{data:pub,error}=await s.from("testimonial_publications").upsert({
+      testimonial_id:t.id,slug,public_title:title,public_excerpt:excerpt,public_text:t.original_text,
+      public_display_name:display,published_at:null,edited_by:userId
+    },{onConflict:"testimonial_id"}).select().single();
     if(error){notify(error.message);return}
     setPublications(current=>current.some(x=>x.id===pub.id)?current.map(x=>x.id===pub.id?pub:x):[pub,...current]);
-    await moderate(t.id,"PUBLICADO");
+    const{data:reviewed}=await s.from("testimonials").update({status:"APROVADO",reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",t.id).select("id,display_name_original,original_text,publication_consent,status,created_at").single();
+    if(reviewed)setTestimonials(current=>current.map(x=>x.id===t.id?reviewed:x));
+    await audit("TESTIMONIAL_PREPARED","testimonial",t.id);
+    notify("Rascunho de publicação preparado. Revise antes de publicar.");
   }
+
   async function savePublication(id:string,patch:AnyRow){
     const{data,error}=await s.from("testimonial_publications").update({...patch,edited_by:userId}).eq("id",id).select().single();
     if(error){notify(error.message);return}
@@ -210,23 +220,34 @@ export function AdminClient({
     setAlbums(current=>current.filter(x=>x.id!==id));
     setPhotos(current=>current.map(x=>x.album_id===id?{...x,album_id:null}:x));notify("Álbum removido.");
   }
-  async function uploadPhoto(e:React.FormEvent<HTMLFormElement>){
-    e.preventDefault();const form=e.currentTarget;const fd=new FormData(form);fd.set("featured",String(fd.get("featured")==="on"));notify("Enviando imagem...");
-    const res=await fetch("/api/admin/photos",{method:"POST",body:fd});const payload=await res.json();
-    if(!res.ok){notify(payload.error||"Não foi possível enviar a imagem.");return}
-    setPhotos([payload.photo,...photos]);form.reset();notify("Foto enviada.");
+  async function loadMorePhotos(){
+    if(loadingMorePhotos||photos.length>=photoTotal)return;
+    setLoadingMorePhotos(true);
+    const{data,error}=await s.from("media_assets").select("*").eq("media_type","image").order("created_at",{ascending:false}).range(photos.length,photos.length+79);
+    setLoadingMorePhotos(false);
+    if(error){notify(error.message);return}
+    setPhotos(current=>[...current,...(data||[]).filter(item=>!current.some(existing=>existing.id===item.id))]);
   }
+
   async function savePhoto(id:string,patch:AnyRow){
+    const previous=photos.find(x=>x.id===id);
     const{data,error}=await s.from("media_assets").update(patch).eq("id",id).select().single();
     if(error){notify(error.message);return}
+    if(previous&&previous.is_private!==data.is_private){
+      setPublicPhotoTotal(current=>Math.max(0,current+(data.is_private===true?-1:1)));
+    }
     setPhotos(current=>current.map(x=>x.id===id?data:x));notify("Foto atualizada.");
   }
   async function deletePhoto(id:string){
     if(!window.confirm("Remover esta foto definitivamente?"))return;
+    const previous=photos.find(x=>x.id===id);
     const res=await fetch("/api/admin/photos",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
     const payload=await res.json();
     if(!res.ok){notify(payload.error||"Não foi possível remover a foto.");return}
-    setPhotos(current=>current.filter(x=>x.id!==id));notify("Foto removida.");
+    setPhotos(current=>current.filter(x=>x.id!==id));
+    setPhotoTotal(current=>Math.max(0,current-1));
+    if(previous?.is_private!==true)setPublicPhotoTotal(current=>Math.max(0,current-1));
+    notify("Foto removida.");
   }
   async function addScripture(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();const fd=new FormData(e.currentTarget);
@@ -281,76 +302,77 @@ export function AdminClient({
   const newCount=testimonials.filter(t=>t.status==="RECEBIDO").length;
   const brandSetting=settings.find(x=>x.setting_key==="brand")?.value||{};
   const contactSetting=settings.find(x=>x.setting_key==="contact")?.value||{};
+  const visiblePhotoCount=publicPhotoTotal;
+  const hiddenPhotoCount=Math.max(0,photoTotal-publicPhotoTotal);
+  const nextEvent=events.filter(event=>event.status==="PUBLICADO").sort((a,b)=>new Date(a.starts_at||0).getTime()-new Date(b.starts_at||0).getTime())[0]||events[0];
+  const filteredEvents=events.filter(event=>eventView==="all"||eventView==="draft"&&event.status==="RASCUNHO"||eventView==="published"&&event.status==="PUBLICADO"||eventView==="closed"&&event.status==="ENCERRADO");
+  const filteredTestimonials=testimonials.filter(item=>{
+    const publication=publications.find(p=>p.testimonial_id===item.id);
+    if(testimonialView==="new")return item.status==="RECEBIDO";
+    if(testimonialView==="review")return ["EM_ANALISE","APROVADO"].includes(item.status)&&!publication?.published_at;
+    if(testimonialView==="published")return !!publication?.published_at;
+    return item.status==="ARQUIVADO";
+  });
+  const selectedTestimonial=testimonials.find(item=>item.id===selectedTestimonialId)||null;
+  const selectedPublication=selectedTestimonial?publications.find(item=>item.testimonial_id===selectedTestimonial.id):null;
 
-  function goTab(next:MainTab){setTab(next);setSelectedPage(null);if(next!=="pages")setMode("basic")}
+  function goTab(next:MainTab){setTab(next);setSelectedPage(null);setSelectedTestimonialId(null);setSelectedEventId(null)}
 
   return <main className="admin-mobile-shell">
     <div className="admin-mobile-content">
-      <header className={"admin-page-heading "+(tab==="events"&&selectedEventId?"is-editor":"")}>
+      <header className={"admin-page-heading "+((tab==="events"&&selectedEventId)||(tab==="testimonials"&&selectedTestimonialId)||(tab==="pages"&&selectedPage)?"is-editor":"")}>
         <div>
           <span className="admin-kicker">Café com Testemunho</span>
-          <h1>{tab==="dashboard"?"Painel":tab==="pages"?(currentPage?.label||"Páginas"):tab==="events"?"Eventos":tab==="library"?"Biblioteca":"Ajustes"}</h1>
+          <h1>{tab==="dashboard"?"Painel":tab==="events"?"Eventos":tab==="testimonials"?"Testemunhos":tab==="gallery"?"Galeria":tab==="pages"?(currentPage?.label||"Páginas"):"Ajustes"}</h1>
         </div>
-        <a className="admin-preview-button" href="/" target="_blank" rel="noreferrer"><ExternalLink size={18}/><span>Ver site</span></a>
+        {!selectedEventId&&!selectedTestimonialId&&!selectedPage&&<div className="admin-heading-actions">
+          <a className="admin-header-icon" href="/" target="_blank" rel="noreferrer" aria-label="Ver site"><ExternalLink size={18}/></a>
+          <button className={"admin-header-icon "+(tab==="settings"?"active":"")} type="button" onClick={()=>goTab(tab==="settings"?"dashboard":"settings")} aria-label="Abrir ajustes"><Settings2 size={18}/></button>
+        </div>}
       </header>
 
       {message&&<div className="admin-toast">{message}</div>}
 
-      {tab==="dashboard"&&<section className="admin-screen">
+      {tab==="dashboard"&&<section className="admin-screen admin-dashboard-clean">
         <div className="admin-welcome">
-          <div><span className="eyebrow">Administração</span><h2>O que você quer fazer?</h2><p>Gerencie o conteúdo completo do projeto pelo celular, sem precisar entrar no código.</p></div>
+          <div><span className="eyebrow">Administração</span><h2>O que precisa de atenção?</h2><p>Os fluxos principais ficam aqui. Ajustes de conteúdo e configuração ficam separados para não misturar tarefas.</p></div>
         </div>
-        <div className="admin-stat-grid">
-          <div className="admin-stat-card"><span>Eventos</span><strong>{events.length}</strong></div>
-          <div className="admin-stat-card"><span>Novos relatos</span><strong>{newCount}</strong></div>
-          <div className="admin-stat-card"><span>Fotos</span><strong>{photos.length}</strong></div>
-          <div className="admin-stat-card"><span>Posts</span><strong>{instagram.filter(x=>x.visible).length}</strong></div>
-        </div>
-        <div className="admin-action-list">
-          <button onClick={()=>goTab("pages")}><PanelsTopLeft/><div><strong>Editar páginas</strong><span>Todas as páginas e todas as seções</span></div><ChevronRight/></button>
-          <button onClick={()=>goTab("events")}><CalendarDays/><div><strong>Gerenciar eventos</strong><span>Criar, editar, publicar e arquivar</span></div><ChevronRight/></button>
-          <button onClick={()=>goTab("library")}><LibraryBig/><div><strong>Abrir biblioteca</strong><span>Fotos, testemunhos, Palavra e Instagram</span></div><ChevronRight/></button>
-          <button onClick={()=>goTab("settings")}><Settings2/><div><strong>Configurações</strong><span>Identidade, redes e dados globais</span></div><ChevronRight/></button>
-        </div>
-      </section>}
 
-      {tab==="pages"&&<section className="admin-screen">
-        {!currentPage?<div className="admin-page-list">
-          <div className="admin-section-intro"><span className="eyebrow">Conteúdo</span><h2>Todas as páginas</h2><p>Entre em uma página para editar suas seções. Você pode usar o modo básico ou o modo avançado.</p></div>
-          {pages.map(p=><button className="admin-page-card" key={p.key} onClick={()=>{setSelectedPage(p.key);setMode("basic")}}>
-            <div><strong>{p.label}</strong><span>{p.description}</span></div><ChevronRight/>
-          </button>)}
-        </div>:<div className="admin-page-editor">
-          <button className="admin-back" onClick={()=>setSelectedPage(null)}><ChevronLeft size={18}/>Voltar para páginas</button>
-          <ModeSwitch mode={mode} setMode={setMode}/>
-          <div className="admin-section-intro compact"><span className="eyebrow">{mode==="basic"?"Edição básica":"Modo avançado"}</span><h2>{currentPage.label}</h2><p>{mode==="basic"?"Edite os textos, imagens e visibilidade sem ver configurações técnicas.":"Controle completo da seção: ordem, CTA, alinhamento, estilo, movimento e configurações avançadas."}</p></div>
-          <div className="admin-editor-stack">
-            {pageSections.map(sec=><SectionEditor key={sec.id} section={sec} mode={mode} title={sectionNames[sec.section_key]||sec.title} onSave={saveSection} notify={notify}/>)}
-            {currentPage.special==="story"&&<div className="admin-subsection-group"><div className="admin-subsection-title"><BookHeart size={20}/><div><strong>História em capítulos</strong><span>Linha do tempo completa da página Sobre</span></div></div>{story.map(ch=><StoryEditor key={ch.id} chapter={ch} mode={mode} onSave={saveStory} onDelete={deleteStory} notify={notify}/>)}</div>}
-          </div>
-        </div>}
+        <div className="admin-focus-list">
+          <button onClick={()=>goTab("events")}><CalendarDays size={19}/><div><strong>Eventos</strong><span>{nextEvent?nextEvent.title:"Nenhum evento cadastrado"}</span></div><b>{events.length}</b><ChevronRight size={18}/></button>
+          <button onClick={()=>goTab("testimonials")}><MessageSquareQuote size={19}/><div><strong>Testemunhos</strong><span>{newCount?newCount+" aguardando revisão":"Nenhum novo relato"}</span></div><b>{newCount}</b><ChevronRight size={18}/></button>
+          <button onClick={()=>goTab("gallery")}><Images size={19}/><div><strong>Galeria</strong><span>{visiblePhotoCount+" fotos publicadas"}</span></div><b>{photoTotal}</b><ChevronRight size={18}/></button>
+        </div>
+
+        <button className="admin-pages-entry" onClick={()=>goTab("pages")}><PanelsTopLeft size={18}/><div><strong>Editar páginas</strong><span>Textos, imagens e visibilidade do site</span></div><ChevronRight size={18}/></button>
       </section>}
 
       {tab==="events"&&<section className="admin-screen">
         {!selectedEventId?<>
-          <div className="admin-section-intro"><span className="eyebrow">Agenda</span><h2>Eventos</h2><p>Crie um rascunho e complete o evento em etapas. Cada etapa é salva antes de você avançar.</p></div>
+          <div className="admin-section-intro"><span className="eyebrow">Publicação</span><h2>Fluxo do evento</h2><p>Crie, complete e publique cada encontro em um fluxo único.</p></div>
           <form className="event-quick-create" onSubmit={createEvent}>
-            <div><strong>Novo evento</strong><span>Comece apenas pelo nome. O restante será preenchido no wizard.</span></div>
+            <div><strong>Criar evento</strong><span>Informe apenas o nome para começar. O restante é preenchido por etapas.</span></div>
             <Field label="Nome do evento"><input name="title" required placeholder="Ex.: Café com Testemunho"/></Field>
-            <button className="btn btn-dark" type="submit"><Plus size={17}/>Criar e começar</button>
+            <button className="admin-primary-action" type="submit"><Plus size={17}/>Criar rascunho</button>
           </form>
-          <div className="event-admin-list">{events.map(e=><button key={e.id} className="event-admin-row" onClick={()=>setSelectedEventId(e.id)}>
-            <div className="event-admin-row-main"><span className={"event-status-dot "+String(e.status).toLowerCase()}/><div><strong>{e.title}</strong><span>{e.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(e.starts_at)):"Data ainda não definida"} · {e.status}</span></div></div>
+          <div className="admin-segmented">
+            <button className={eventView==="all"?"active":""} onClick={()=>setEventView("all")}>Todos</button>
+            <button className={eventView==="draft"?"active":""} onClick={()=>setEventView("draft")}>Rascunhos</button>
+            <button className={eventView==="published"?"active":""} onClick={()=>setEventView("published")}>Publicados</button>
+            <button className={eventView==="closed"?"active":""} onClick={()=>setEventView("closed")}>Encerrados</button>
+          </div>
+          <div className="event-admin-list">{filteredEvents.map(e=><button key={e.id} className="event-admin-row" onClick={()=>setSelectedEventId(e.id)}>
+            <div className="event-admin-row-main"><span className={"event-status-dot "+String(e.status).toLowerCase()}/><div><strong>{e.title}</strong><span>{e.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(e.starts_at)):"Data ainda não definida"} · {e.status==="RASCUNHO"?"Rascunho":e.status==="PUBLICADO"?"Publicado":"Encerrado"}</span></div></div>
             <div className="event-progress-mini"><span style={{width:Math.max(8,Math.min(100,Number(e.wizard_step||1)/8*100))+"%"}}/></div>
             <ChevronRight size={18}/>
           </button>)}
-          {!events.length&&<div className="admin-empty">Nenhum evento cadastrado.</div>}
+          {!filteredEvents.length&&<div className="admin-empty">Nenhum evento nesta etapa.</div>}
           </div>
         </>:(()=>{
           const e=events.find(x=>x.id===selectedEventId);
           if(!e)return <div className="admin-empty">Evento não encontrado.</div>;
           return <EventWizard
-            event={e} mode={mode} setMode={setMode} onBack={()=>setSelectedEventId(null)} onSave={saveEvent} notify={notify}
+            event={e} onBack={()=>setSelectedEventId(null)} onSave={saveEvent} notify={notify}
             guests={eventGuests.filter(x=>x.event_id===e.id)} schedule={eventSchedule.filter(x=>x.event_id===e.id)} faqs={eventFaqs.filter(x=>x.event_id===e.id)}
             onAddGuest={addEventGuest} onUpdateGuest={updateEventGuest} onDeleteGuest={deleteEventGuest}
             onAddSchedule={addScheduleItem} onUpdateSchedule={updateScheduleItem} onDeleteSchedule={deleteScheduleItem}
@@ -359,160 +381,282 @@ export function AdminClient({
         })()}
       </section>}
 
-      {tab==="library"&&<section className="admin-screen">
-        <div className="admin-library-tabs">
-          {([
-            ["photos","Fotos",Images],["testimonials","Testemunhos",MessageSquareQuote],["scripture","Palavra",BookHeart],["instagram","Instagram",Instagram]
-          ] as [LibraryKey,string,any][]).map(([key,label,Icon])=><button key={key} className={selectedLibrary===key?"active":""} onClick={()=>setSelectedLibrary(key)}><Icon size={18}/><span>{label}</span></button>)}
+      {tab==="testimonials"&&<section className="admin-screen">
+        {!selectedTestimonial?<>
+          <div className="admin-section-intro"><span className="eyebrow">Fluxo editorial</span><h2>Caixa de entrada</h2><p>Leia o relato original, confirme a autorização e só então prepare a publicação.</p></div>
+          <div className="admin-segmented admin-testimonial-tabs">
+            <button className={testimonialView==="new"?"active":""} onClick={()=>setTestimonialView("new")}>Novos</button>
+            <button className={testimonialView==="review"?"active":""} onClick={()=>setTestimonialView("review")}>Em revisão</button>
+            <button className={testimonialView==="published"?"active":""} onClick={()=>setTestimonialView("published")}>Publicados</button>
+            <button className={testimonialView==="archived"?"active":""} onClick={()=>setTestimonialView("archived")}>Arquivados</button>
+          </div>
+          <div className="admin-testimonial-list">
+            {filteredTestimonials.map(t=>{const pub=publications.find(p=>p.testimonial_id===t.id);return <button key={t.id} className="admin-testimonial-row" onClick={()=>setSelectedTestimonialId(t.id)}>
+              <div><strong>{t.display_name_original||"Sem identificação"}</strong><span>{String(t.original_text||"").replace(/\s+/g," ").slice(0,105)}{String(t.original_text||"").length>105?"…":""}</span><small>{new Date(t.created_at).toLocaleDateString("pt-BR")} · {t.publication_consent==="PRIVATE_ONLY"?"Somente privado":t.publication_consent==="ANONYMOUS"?"Pode publicar anônimo":"Pode publicar com nome"}</small></div>
+              <span className={"admin-testimonial-status "+(pub?.published_at?"published":"")}>{pub?.published_at?"Publicado":t.status==="RECEBIDO"?"Novo":t.status==="ARQUIVADO"?"Arquivado":"Revisão"}</span>
+              <ChevronRight size={18}/>
+            </button>})}
+            {!filteredTestimonials.length&&<div className="admin-empty">Nenhum testemunho nesta etapa.</div>}
+          </div>
+        </>:<div className="admin-testimonial-review">
+          <button className="admin-back" onClick={()=>setSelectedTestimonialId(null)}><ChevronLeft size={18}/>Voltar para testemunhos</button>
+          <div className="admin-review-header"><div><span className="eyebrow">Relato original</span><h2>{selectedTestimonial.display_name_original||"Sem identificação"}</h2></div><span className="status-pill">{selectedTestimonial.status}</span></div>
+
+          <section className="admin-review-consent">
+            <strong>Autorização recebida</strong>
+            <span>{selectedTestimonial.publication_consent==="PRIVATE_ONLY"?"Somente leitura privada. Este relato não pode ser publicado.":selectedTestimonial.publication_consent==="ANONYMOUS"?"Pode ser publicado sem identificar a autora.":"Pode ser publicado com o nome informado."}</span>
+          </section>
+
+          <article className="admin-review-original">{selectedTestimonial.original_text}</article>
+
+          <div className="admin-review-actions">
+            {selectedTestimonial.status==="RECEBIDO"&&<button onClick={()=>moderate(selectedTestimonial.id,"EM_ANALISE")}>Marcar em revisão</button>}
+            {selectedTestimonial.publication_consent!=="PRIVATE_ONLY"&&!selectedPublication&&<button className="primary" onClick={()=>preparePublication(selectedTestimonial)}>Preparar publicação</button>}
+            {selectedTestimonial.status==="ARQUIVADO"?<button onClick={()=>moderate(selectedTestimonial.id,"EM_ANALISE")}>Reabrir para revisão</button>:<button onClick={()=>moderate(selectedTestimonial.id,"ARQUIVADO")}>Arquivar</button>}
+          </div>
+
+          {selectedPublication&&<TestimonialPublicationEditor item={selectedPublication} onSave={savePublication}/>}
+          <button className="admin-text-danger" onClick={()=>deleteTestimonial(selectedTestimonial.id)}>Excluir definitivamente</button>
+        </div>}
+      </section>}
+
+      {tab==="gallery"&&<section className="admin-screen">
+        <div className="admin-section-intro"><span className="eyebrow">Galeria</span><h2>Fotos</h2><p>Envie em lote, organize por álbum e escolha o que fica visível no site.</p></div>
+        <div className="admin-gallery-counts">
+          <div><strong>{photoTotal}</strong><span>Total de fotos</span></div>
+          <div><strong>{visiblePhotoCount}</strong><span>Publicadas</span></div>
+          <div><strong>{hiddenPhotoCount}</strong><span>Ocultas</span></div>
         </div>
 
-        {selectedLibrary==="photos"&&<div className="admin-library-view">
-          <div className="admin-section-intro"><span className="eyebrow">Galeria</span><h2>Fotos e álbuns</h2><p>Envie imagens, destaque na Home e organize as memórias por álbum.</p></div>
-          <details className="admin-create-panel" open><summary><Upload size={18}/>Enviar foto</summary><form className="form" onSubmit={uploadPhoto}>
-            <Field label="Imagem"><input type="file" name="file" accept="image/*" required/></Field>
-            <Field label="Descrição"><input name="alt" placeholder="Descreva a foto"/></Field>
-            <Field label="Álbum"><select name="album_id" defaultValue=""><option value="">Galeria geral</option>{albums.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></Field>
-            <label className="admin-check"><input type="checkbox" name="featured"/>Destacar na página inicial</label>
-            <button className="btn btn-dark">Enviar imagem</button>
-          </form></details>
-          <details className="admin-create-panel"><summary><Plus size={18}/>Criar álbum</summary><form className="form" onSubmit={createAlbum}>
-            <Field label="Nome"><input name="title" required/></Field><Field label="Slug opcional"><input name="slug"/></Field><Field label="Descrição"><textarea name="description"/></Field><button className="btn btn-dark">Criar álbum</button>
+        <GalleryBulkUpload albums={albums} notify={notify} onUploaded={newPhotos=>{setPhotos(current=>[...newPhotos,...current]);setPhotoTotal(current=>current+newPhotos.length);setPublicPhotoTotal(current=>current+newPhotos.length)}}/>
+
+        <section className="admin-gallery-albums">
+          <div className="admin-inline-heading"><div><strong>Álbuns</strong><span>Use apenas quando precisar separar grupos de fotos.</span></div></div>
+          <details className="admin-create-panel"><summary><Plus size={17}/>Criar álbum</summary><form className="form" onSubmit={createAlbum}>
+            <Field label="Nome"><input name="title" required/></Field>
+            <Field label="Descrição"><textarea name="description"/></Field>
+            <button className="admin-primary-action" type="submit">Criar álbum</button>
           </form></details>
           {albums.length>0&&<div className="admin-editor-stack">{albums.map(a=><AlbumEditor key={a.id} album={a} onSave={saveAlbum} onDelete={deleteAlbum}/>)}</div>}
-          <div className="admin-photo-grid">{photos.map(p=><PhotoEditor key={p.id} photo={p} albums={albums} onSave={savePhoto} onDelete={deletePhoto}/>)}</div>
-        </div>}
+        </section>
 
-        {selectedLibrary==="testimonials"&&<div className="admin-library-view">
-          <div className="admin-section-intro"><span className="eyebrow">Moderação</span><h2>Testemunhos</h2><p>Revise os relatos recebidos e escolha o que pode ser publicado.</p></div>
-          <div className="admin-editor-stack">{testimonials.map(t=>{const pub=publications.find(p=>p.testimonial_id===t.id);return <article className="admin-content-card" key={t.id}><div className="admin-card-top"><span className="status-pill">{t.status}</span><small>{new Date(t.created_at).toLocaleDateString("pt-BR")}</small></div><h3>{t.display_name_original||"Sem identificação"}</h3><p className="admin-long-copy">{t.original_text}</p><div className="admin-card-actions"><button onClick={()=>moderate(t.id,"EM_ANALISE")}>Em análise</button><button onClick={()=>moderate(t.id,"APROVADO")}>Aprovar</button>{t.publication_consent!=="PRIVATE_ONLY"&&<button className="primary" onClick={()=>publish(t)}>{pub?"Republicar":"Publicar"}</button>}<button className="danger" onClick={()=>moderate(t.id,"ARQUIVADO")}>Ocultar</button><button className="danger" onClick={()=>deleteTestimonial(t.id)}>Remover</button></div>{pub&&<TestimonialPublicationEditor item={pub} onSave={savePublication}/>}</article>})}</div>
-        </div>}
+        <div className="admin-inline-heading gallery-heading"><div><strong>Fotos cadastradas</strong><span>Toque em uma foto para editar descrição, álbum ou visibilidade.</span></div></div>
+        <div className="admin-photo-grid">{photos.map(p=><PhotoEditor key={p.id} photo={p} albums={albums} onSave={savePhoto} onDelete={deletePhoto}/>)}</div>
+        {!photos.length&&<div className="admin-empty">Nenhuma foto cadastrada.</div>}
+        {photos.length<photoTotal&&<button className="admin-load-more" type="button" disabled={loadingMorePhotos} onClick={loadMorePhotos}>{loadingMorePhotos?"Carregando…":`Carregar mais fotos · ${photos.length} de ${photoTotal}`}</button>}
+      </section>}
 
-        {selectedLibrary==="scripture"&&<div className="admin-library-view">
-          <div className="admin-section-intro"><span className="eyebrow">Bíblia</span><h2>Palavra e versículos</h2><p>Cadastre as passagens que podem aparecer na Home e na página Sobre.</p></div>
-          <details className="admin-create-panel"><summary><Plus size={18}/>Adicionar Palavra</summary><form className="form" onSubmit={addScripture}>
-            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option><option value="about">Sobre</option></select></Field>
-            <Field label="Referência"><input name="reference" required/></Field><Field label="Versículo"><textarea name="verse_text" required/></Field><Field label="Reflexão"><textarea name="reflection"/></Field><button className="btn btn-dark">Adicionar</button>
-          </form></details>
-          <div className="admin-editor-stack">{scriptures.map(v=><ScriptureEditor key={v.id} item={v} onSave={saveScripture} onDelete={deleteScripture}/>)}</div>
-        </div>}
-
-        {selectedLibrary==="instagram"&&<div className="admin-library-view">
-          <div className="admin-section-intro"><span className="eyebrow">Curadoria</span><h2>Instagram</h2><p>Cole apenas o link de um post ou Reel público. O conteúdo original do Instagram é renderizado no site, sem recadastrar foto, título ou legenda.</p></div>
-          <details className="admin-create-panel" open><summary><Plus size={18}/>Selecionar post do Instagram</summary><form className="form" onSubmit={addInstagram}>
-            <Field label="Link do post ou Reel" hint="Ex.: https://www.instagram.com/p/... ou /reel/..."><input name="post_url" type="url" required placeholder="https://www.instagram.com/p/..."/></Field>
-            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option></select></Field>
-            <button className="btn btn-dark">Adicionar ao site</button>
-          </form></details>
-          <div className="admin-editor-stack">{instagram.map(p=><InstagramAdminEditor key={p.id} item={p} onSave={saveInstagram} onDelete={deleteInstagram}/>)}</div>
-          {!instagram.length&&<div className="admin-empty">Nenhum post selecionado. O post que estava cadastrado anteriormente foi removido.</div>}
+      {tab==="pages"&&<section className="admin-screen">
+        {!currentPage?<div className="admin-page-list">
+          <div className="admin-section-intro"><span className="eyebrow">Conteúdo do site</span><h2>Escolha uma página</h2><p>Dentro dela aparecem somente os campos que realmente controlam aquela tela.</p></div>
+          {pages.map(p=><button className="admin-page-card admin-page-card-clean" key={p.key} onClick={()=>setSelectedPage(p.key)}>
+            <div><strong>{p.label}</strong><span>{p.description}</span></div><ChevronRight size={18}/>
+          </button>)}
+        </div>:<div className="admin-page-editor">
+          <div className="admin-page-editor-bar">
+            <button className="admin-back" onClick={()=>setSelectedPage(null)}><ChevronLeft size={18}/>Páginas</button>
+            <a className="admin-page-preview" href={currentPage.key==="home"?"/":currentPage.key==="about"?"/sobre":currentPage.key==="submit"?"/enviar-testemunho":"/"+currentPage.key} target="_blank" rel="noreferrer"><ExternalLink size={15}/>Ver página</a>
+          </div>
+          <div className="admin-editor-context"><span className="eyebrow">Edição da página</span><p>Abra uma seção por vez, altere somente o que precisa e salve.</p></div>
+          <div className="admin-editor-stack">
+            {pageSections.map(sec=><SectionEditor key={sec.id} section={sec} title={sectionNames[sec.section_key]||sec.title} onSave={saveSection} notify={notify}/>)}
+            {currentPage.special==="story"&&<div className="admin-subsection-group"><div className="admin-subsection-title"><div><strong>História em capítulos</strong><span>Linha do tempo da página Sobre</span></div></div>{story.map(ch=><StoryEditor key={ch.id} chapter={ch} onSave={saveStory} onDelete={deleteStory} notify={notify}/>)}</div>}
+          </div>
         </div>}
       </section>}
 
       {tab==="settings"&&<section className="admin-screen">
-        <div className="admin-section-intro"><span className="eyebrow">Sistema</span><h2>Configurações</h2><p>Identidade, contato, redes sociais e dados globais do projeto.</p></div>
-        <SettingCard title="Identidade do projeto">
-          <BrandSettings value={brandSetting} onSave={v=>saveSetting("brand",v)} notify={notify}/>
-        </SettingCard>
-        <SettingCard title="Contato">
-          <ContactSettings value={contactSetting} onSave={v=>saveSetting("contact",v)}/>
-        </SettingCard>
-        <SettingCard title="Redes sociais">
-          <div className="admin-editor-stack">{social.map(item=><SocialEditor key={item.id} item={item} onSave={saveSocial}/>)}</div>
-        </SettingCard>
-        <SettingCard title="Rodapé">
-          {sections.find(x=>x.section_key==="global_footer")&&<SectionEditor section={sections.find(x=>x.section_key==="global_footer")!} mode="advanced" title="Conteúdo global do rodapé" onSave={saveSection} notify={notify}/>}
-        </SettingCard>
+        <div className="admin-section-intro"><span className="eyebrow">Ajustes</span><h2>Configurações</h2><p>Itens globais e conteúdos auxiliares. Você não precisa entrar aqui para publicar eventos, testemunhos ou fotos.</p></div>
+        <SettingCard title="Identidade do projeto"><BrandSettings value={brandSetting} onSave={v=>saveSetting("brand",v)} notify={notify}/></SettingCard>
+        <SettingCard title="Contato"><ContactSettings value={contactSetting} onSave={v=>saveSetting("contact",v)}/></SettingCard>
+        <SettingCard title="Redes sociais"><div className="admin-editor-stack">{social.map(item=><SocialEditor key={item.id} item={item} onSave={saveSocial}/>)}</div></SettingCard>
+
+        <div className="admin-settings-secondary">
+          <div className="admin-inline-heading"><div><strong>Palavra e versículos</strong><span>Conteúdo bíblico usado na Home e na página Sobre.</span></div></div>
+          <details className="admin-create-panel"><summary><Plus size={17}/>Adicionar Palavra</summary><form className="form" onSubmit={addScripture}>
+            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option><option value="about">Sobre</option></select></Field>
+            <Field label="Referência"><input name="reference" required/></Field>
+            <Field label="Versículo"><textarea name="verse_text" required/></Field>
+            <Field label="Reflexão"><textarea name="reflection"/></Field>
+            <button className="admin-primary-action">Adicionar Palavra</button>
+          </form></details>
+          <div className="admin-editor-stack">{scriptures.map(v=><ScriptureEditor key={v.id} item={v} onSave={saveScripture} onDelete={deleteScripture}/>)}</div>
+        </div>
+
+        <div className="admin-settings-secondary">
+          <div className="admin-inline-heading"><div><strong>Publicações do Instagram</strong><span>Posts ou Reels selecionados para aparecer no site.</span></div></div>
+          <details className="admin-create-panel"><summary><Plus size={17}/>Adicionar publicação</summary><form className="form" onSubmit={addInstagram}>
+            <Field label="Link do post ou Reel"><input name="post_url" type="url" required placeholder="https://www.instagram.com/p/..."/></Field>
+            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option></select></Field>
+            <button className="admin-primary-action">Adicionar ao site</button>
+          </form></details>
+          <div className="admin-editor-stack">{instagram.map(p=><InstagramAdminEditor key={p.id} item={p} onSave={saveInstagram} onDelete={deleteInstagram}/>)}</div>
+        </div>
+
+        <SettingCard title="Rodapé">{sections.find(x=>x.section_key==="global_footer")&&<SectionEditor section={sections.find(x=>x.section_key==="global_footer")!} title="Conteúdo global do rodapé" onSave={saveSection} notify={notify}/>}</SettingCard>
         <button className="admin-logout" onClick={logout}><LogOut size={18}/>Sair da conta <small>{userEmail}</small></button>
       </section>}
     </div>
 
-    <nav className="admin-bottom-nav" aria-label="Navegação administrativa">
-      <button className={tab==="dashboard"?"active":""} onClick={()=>goTab("dashboard")}><LayoutDashboard size={21}/><span>Início</span></button>
-      <button className={tab==="pages"?"active":""} onClick={()=>goTab("pages")}><PanelsTopLeft size={21}/><span>Páginas</span></button>
-      <button className={tab==="events"?"active":""} onClick={()=>goTab("events")}><CalendarDays size={21}/><span>Eventos</span></button>
-      <button className={tab==="library"?"active":""} onClick={()=>goTab("library")}><LibraryBig size={21}/><span>Biblioteca</span></button>
-      <button className={tab==="settings"?"active":""} onClick={()=>goTab("settings")}><Settings2 size={21}/><span>Ajustes</span></button>
-    </nav>
+    {!selectedEventId&&!selectedTestimonialId&&!selectedPage&&<><nav className="admin-bottom-nav" aria-label="Navegação administrativa">
+      <button className={tab==="dashboard"?"active":""} onClick={()=>goTab("dashboard")}><LayoutDashboard size={20}/><span>Início</span></button>
+      <button className={tab==="events"?"active":""} onClick={()=>goTab("events")}><CalendarDays size={20}/><span>Eventos</span></button>
+      <button className={tab==="testimonials"?"active":""} onClick={()=>{goTab("testimonials");setSelectedTestimonialId(null)}}><MessageSquareQuote size={20}/><span>Testemunhos</span></button>
+      <button className={tab==="gallery"?"active":""} onClick={()=>goTab("gallery")}><Images size={20}/><span>Galeria</span></button>
+      <button className={tab==="pages"?"active":""} onClick={()=>goTab("pages")}><PanelsTopLeft size={20}/><span>Páginas</span></button>
+    </nav></>}
+
   </main>
 }
 
-function ModeSwitch({mode,setMode}:{mode:EditMode;setMode:(m:EditMode)=>void}){
-  return <div className="admin-mode-switch"><button className={mode==="basic"?"active":""} onClick={()=>setMode("basic")}>Básico</button><button className={mode==="advanced"?"active":""} onClick={()=>setMode("advanced")}><SlidersHorizontal size={16}/>Avançado</button></div>
-}
 function Field({label,children,hint}:{label:string;children:React.ReactNode;hint?:string}){return <div className="field"><label>{label}</label>{children}{hint&&<small className="field-hint">{hint}</small>}</div>}
 
-function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:EditMode;title:string;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
+function SectionEditor({section,title,onSave,notify}:{section:AnyRow;title:string;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
   const isHomeHero=section.section_key==="home_hero";
   const isHomeIntro=section.section_key==="home_intro";
   const isHomeWord=section.section_key==="home_word";
-  const isInternalHero=["about_mission","agenda_hero","photos_hero","testimonials_hero","submit_testimonial_hero"].includes(section.section_key);
+  const imageOnlyHero=["agenda_hero","photos_hero","testimonials_hero"].includes(section.section_key);
+  const isInternalHero=["about_mission","submit_testimonial_hero"].includes(section.section_key);
+  const isAgendaIntro=section.section_key==="agenda_intro";
+  const isAgendaCta=section.section_key==="agenda_cta";
+  const isTestimonialsCta=section.section_key==="testimonials_cta";
+  const isHomeCta=section.section_key==="home_cta";
+  const isAboutWord=section.section_key==="about_word";
+  const isAboutPhotos=section.section_key==="about_photos";
+  const isAboutTestimony=section.section_key==="about_testimony";
+  const isAboutCta=section.section_key==="about_cta";
+  const isSubmitCopy=["submit_testimonial_intro","submit_testimonial_privacy"].includes(section.section_key);
+  const isFixedVisibility=["home_hero","about_mission","agenda_hero","photos_hero","testimonials_hero","submit_testimonial_hero","submit_testimonial_intro","submit_testimonial_privacy"].includes(section.section_key);
   const[t,setT]=useState(section.title||""),[sub,setSub]=useState(section.subtitle||""),[body,setBody]=useState(section.body||""),[visible,setVisible]=useState(section.visible!==false);
   const[image,setImage]=useState(section.image_url||""),[ctaLabel,setCtaLabel]=useState(section.cta_label||""),[ctaUrl,setCtaUrl]=useState(section.cta_url||"");
   const[heroLogo,setHeroLogo]=useState(section.settings?.logo_url||"");
-  const[order,setOrder]=useState(String(section.sort_order??0)),[theme,setTheme]=useState(section.theme||"default"),[alignment,setAlignment]=useState(section.alignment||"left");
-  const[background,setBackground]=useState(section.settings?.background_style||"default"),[motion,setMotion]=useState(section.settings?.motion||"fade");
-  async function upload(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/secoes");notify("Enviando imagem...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setImage(data.url);notify("Imagem enviada. Salve a seção para aplicar.");}
-  async function uploadHeroLogo(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/hero");notify("Enviando logotipo...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setHeroLogo(data.url);notify("Logotipo enviado. Salve a Hero para aplicar.");}
-  function save(){onSave(section.id,{title:t,subtitle:sub||null,body,image_url:image||null,visible,cta_label:ctaLabel||null,cta_url:ctaUrl||null,sort_order:Number(order)||0,theme,alignment,settings:{...(section.settings||{}),background_style:background,motion,logo_url:heroLogo||null}})}
-  return <details className="admin-section-card" open={mode==="basic"}>
-    <summary><div><span>{title}</span><small>{visible?"Visível":"Oculta"}</small></div><ChevronRight size={18}/></summary>
+
+  async function upload(file:File){
+    const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/secoes");notify("Enviando imagem...");
+    const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();
+    if(!res.ok){notify(data.error||"Falha no upload.");return}
+    setImage(data.url);notify("Imagem enviada. Salve a seção para aplicar.");
+  }
+  async function uploadHeroLogo(file:File){
+    const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/hero");notify("Enviando logotipo...");
+    const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();
+    if(!res.ok){notify(data.error||"Falha no upload.");return}
+    setHeroLogo(data.url);notify("Logotipo enviado. Salve a Hero para aplicar.");
+  }
+  function save(){
+    onSave(section.id,{
+      title:t,subtitle:sub||null,body,image_url:image||null,visible,
+      cta_label:ctaLabel||null,cta_url:ctaUrl||null,
+      sort_order:section.sort_order??0,theme:section.theme||"default",alignment:section.alignment||"left",
+      settings:{...(section.settings||{}),logo_url:heroLogo||null}
+    });
+  }
+
+  return <details className="admin-section-card">
+    <summary><div><span>{title}</span><small>{visible?"Visível no site":"Oculta no site"}</small></div><ChevronRight size={18}/></summary>
     <div className="admin-section-body">
-      <div className="admin-inline-toggle"><div><strong>Exibir seção</strong><span>Controla se esse bloco aparece no site.</span></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button" aria-label="Alternar visibilidade"><span/></button></div>
-      {isHomeHero?<>
-        <Field label="Imagem de fundo da Hero" hint="Essa imagem ocupa a primeira tela inteira. Prefira uma foto vertical ou com o assunto principal no centro."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
-        <Field label="Logotipo da Hero" hint="Se ficar vazio, o sistema usa o logotipo principal cadastrado em Ajustes."><ImagePicker value={heroLogo} onChange={setHeroLogo} onUpload={uploadHeroLogo}/></Field>
-        <Field label="Chamada curta"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Ex.: Fé · acolhimento · testemunho"/></Field>
+      {!isFixedVisibility&&<div className="admin-inline-toggle"><div><strong>Exibir seção</strong><span>{visible?"Esta seção aparece no site.":"Esta seção está escondida."}</span></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button" aria-label="Alternar visibilidade"><span/></button></div>}
+
+      {imageOnlyHero?<>
+        <div className="admin-fixed-copy-note"><strong>Conteúdo visual da Hero</strong><span>O texto desta Hero faz parte do design da página. Aqui você troca somente a imagem de fundo.</span></div>
+        <Field label="Imagem de fundo"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+      </>:isAgendaIntro?<>
+        <div className="admin-fixed-copy-note"><strong>Seção de próximos encontros</strong><span>O título e a chamada fazem parte do layout atual. Use este controle apenas para exibir ou ocultar a seção.</span></div>
+      </>:isAgendaCta?<>
+        <div className="admin-fixed-copy-note"><strong>Chamada para participar</strong><span>A copy já está definida no layout. Você pode trocar a imagem de fundo e o destino do botão.</span></div>
+        <Field label="Imagem de fundo"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Destino do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/agenda"/></Field>
+      </>:isTestimonialsCta?<>
+        <div className="admin-fixed-copy-note"><strong>Chamada para enviar testemunho</strong><span>O texto faz parte do layout atual. Aqui você controla a visibilidade e o destino do botão.</span></div>
+        <Field label="Destino do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/enviar-testemunho"/></Field>
+      </>:isHomeHero?<>
+        <Field label="Imagem de fundo da Hero" hint="Prefira uma foto vertical ou com o assunto principal no centro."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Logotipo da Hero" hint="Se ficar vazio, o sistema usa o logotipo principal."><ImagePicker value={heroLogo} onChange={setHeroLogo} onUpload={uploadHeroLogo}/></Field>
+        <Field label="Chamada curta"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
         <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
-        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)} placeholder="Ex.: Conheça a história"/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/sobre"/></Field></div>
+        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Destino"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>
       </>:isInternalHero?<>
-        <Field label="Imagem de fundo da Hero" hint="Opcional. Use uma imagem delicada, sem texto, com o assunto principal afastado das bordas. A página aplica automaticamente o degradê para manter a leitura."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
-        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Ex.: Como tudo começou"/></Field>
-        <Field label="Título da Hero"><input value={t} onChange={e=>setT(e.target.value)} placeholder="Título curto e delicado"/></Field>
-        <Field label="Texto de apoio"><textarea value={body} onChange={e=>setBody(e.target.value)} placeholder="Um parágrafo curto para apresentar esta página."/></Field>
+        <Field label="Imagem de fundo da Hero"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto de apoio"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
       </>:isHomeWord?<>
-        <Field label="Logotipo desta seção" hint="Cadastre aqui a versão horizontal escura da logotipo. Ela aparece centralizada no final da seção Palavra para este tempo. Prefira PNG ou WebP com fundo transparente."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Logotipo desta seção"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
       </>:isHomeIntro?<>
-        <Field label="Imagem de fundo da seção" hint="Use a arte vertical sem texto. No celular ela ocupa toda a seção e recebe o conteúdo por cima. Recomendado: 1080 × 1920 px ou proporção 9:16."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
-        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Nossa história"/></Field>
-        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)} placeholder="Um projeto que nasceu de um testemunho"/></Field>
+        <Field label="Imagem de fundo"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
-        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)} placeholder="Conhecer a história completa"/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/sobre"/></Field></div>
+        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Destino"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>
+      </>:isHomeCta?<>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-fixed-copy-note"><strong>Botões desta seção</strong><span>Os dois botões seguem os fluxos oficiais: Agenda e Enviar testemunho.</span></div>
+      </>:isAboutWord?<>
+        <div className="admin-fixed-copy-note"><strong>Palavra da página Sobre</strong><span>O versículo e a reflexão são editados em Ajustes → Palavra. Aqui você controla apenas esta seção e a chamada pequena.</span></div>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Ex.: Bíblia"/></Field>
+      </>:isAboutPhotos?<>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto opcional"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-fixed-copy-note"><strong>Fotos desta seção</strong><span>As imagens vêm automaticamente da Galeria pública. Não é necessário cadastrar foto aqui.</span></div>
+      </>:isAboutTestimony?<>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-fixed-copy-note"><strong>Testemunho fundador</strong><span>O relato completo é administrado no fluxo de Testemunhos.</span></div>
+      </>:isAboutCta?<>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-two-col"><Field label="Texto do botão principal"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Destino do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>
+      </>:isSubmitCopy?<>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
       </>:<>
         <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Subtítulo"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
         <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
         <Field label="Imagem da seção"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        {(section.cta_label||section.cta_url)&&<div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Destino"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>}
       </>}
-      {mode==="advanced"&&<div className="admin-advanced-box">
-        <div className="admin-advanced-label"><SlidersHorizontal size={17}/><strong>Configurações avançadas</strong></div>
-        {!isHomeHero&&!isHomeIntro&&!isHomeWord&&!isInternalHero&&<div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>}
-        <div className="admin-two-col"><Field label="Ordem"><input type="number" value={order} onChange={e=>setOrder(e.target.value)}/></Field><Field label="Alinhamento"><select value={alignment} onChange={e=>setAlignment(e.target.value)}><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option></select></Field></div>
-        <div className="admin-two-col"><Field label="Tema"><select value={theme} onChange={e=>setTheme(e.target.value)}><option value="default">Padrão</option><option value="light">Claro</option><option value="dark">Escuro</option><option value="warm">Acolhedor</option></select></Field><Field label="Fundo"><select value={background} onChange={e=>setBackground(e.target.value)}><option value="default">Padrão</option><option value="paper">Papel</option><option value="soft">Suave</option><option value="dark">Escuro</option><option value="image">Imagem</option></select></Field></div>
-        <Field label="Microanimação"><select value={motion} onChange={e=>setMotion(e.target.value)}><option value="fade">Entrada suave</option><option value="rise">Subir suavemente</option><option value="none">Sem animação</option></select></Field>
-        <Field label="Chave interna" hint="Somente leitura. Identifica a seção no sistema."><input value={section.section_key} readOnly/></Field>
-      </div>}
-      <button className="admin-save-button" onClick={save}><Save size={18}/>Salvar seção</button>
+
+      <button className="admin-save-button" onClick={save}><Save size={17}/>Salvar alterações</button>
     </div>
-  </details>
+  </details>;
 }
 
-function StoryEditor({chapter,mode,onSave,onDelete,notify}:{chapter:AnyRow;mode:EditMode;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void;notify:(m:string)=>void}){
-  const[t,setT]=useState(chapter.title||""),[body,setBody]=useState(chapter.body||""),[eyebrow,setEyebrow]=useState(chapter.eyebrow||""),[quote,setQuote]=useState(chapter.quote||""),[image,setImage]=useState(chapter.image_url||""),[visible,setVisible]=useState(chapter.visible!==false),[order,setOrder]=useState(String(chapter.sort_order??0));
-  async function upload(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/historia");notify("Enviando imagem...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setImage(data.url);notify("Imagem enviada. Salve o capítulo.");}
-  return <details className="admin-section-card"><summary><div><span>{t||"Capítulo"}</span><small>{eyebrow}</small></div><ChevronRight size={18}/></summary><div className="admin-section-body">
-    <div className="admin-inline-toggle"><div><strong>Exibir capítulo</strong></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button"><span/></button></div>
-    <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field><Field label="Narrativa"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
-    {mode==="advanced"&&<><Field label="Marcador"><input value={eyebrow} onChange={e=>setEyebrow(e.target.value)}/></Field><Field label="Frase em destaque"><textarea value={quote} onChange={e=>setQuote(e.target.value)}/></Field><Field label="Imagem"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field><Field label="Ordem"><input type="number" value={order} onChange={e=>setOrder(e.target.value)}/></Field></>}
-    <div className="admin-record-actions"><button className="admin-save-button" onClick={()=>onSave(chapter.id,{title:t,body,eyebrow,quote:quote||null,image_url:image||null,visible,sort_order:Number(order)||0})}><Save size={18}/>Salvar capítulo</button><button className="admin-remove-button" onClick={()=>onDelete(chapter.id)}><Trash2 size={17}/>Remover</button></div>
-  </div></details>
+function StoryEditor({chapter,onSave,onDelete,notify}:{chapter:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void;notify:(m:string)=>void}){
+  const[t,setT]=useState(chapter.title||""),[body,setBody]=useState(chapter.body||""),[eyebrow,setEyebrow]=useState(chapter.eyebrow||""),[quote,setQuote]=useState(chapter.quote||""),[image,setImage]=useState(chapter.image_url||""),[visible,setVisible]=useState(chapter.visible!==false);
+  async function upload(file:File){
+    const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/historia");notify("Enviando imagem...");
+    const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();
+    if(!res.ok){notify(data.error||"Falha no upload.");return}
+    setImage(data.url);notify("Imagem enviada. Salve o capítulo.");
+  }
+  return <details className="admin-section-card">
+    <summary><div><span>{t||"Capítulo"}</span><small>{visible?"Visível":"Oculto"}</small></div><ChevronRight size={18}/></summary>
+    <div className="admin-section-body">
+      <div className="admin-inline-toggle"><div><strong>Exibir capítulo</strong></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button"><span/></button></div>
+      <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+      <Field label="Narrativa"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+      <details className="admin-secondary-options">
+        <summary>Complementos do capítulo</summary>
+        <div>
+          <Field label="Marcador"><input value={eyebrow} onChange={e=>setEyebrow(e.target.value)}/></Field>
+          <Field label="Frase em destaque"><textarea value={quote} onChange={e=>setQuote(e.target.value)}/></Field>
+          <Field label="Imagem"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        </div>
+      </details>
+      <div className="admin-record-actions"><button className="admin-save-button" onClick={()=>onSave(chapter.id,{title:t,body,eyebrow,quote:quote||null,image_url:image||null,visible,sort_order:chapter.sort_order??0})}><Save size={17}/>Salvar capítulo</button><button className="admin-remove-button" onClick={()=>onDelete(chapter.id)}><Trash2 size={16}/>Remover</button></div>
+    </div>
+  </details>;
 }
 
 function EventWizard({
-  event,mode,setMode,onBack,onSave,notify,guests,schedule,faqs,
+  event,onBack,onSave,notify,guests,schedule,faqs,
   onAddGuest,onUpdateGuest,onDeleteGuest,onAddSchedule,onUpdateSchedule,onDeleteSchedule,onAddFaq,onUpdateFaq,onDeleteFaq,onDeleteEvent
 }:{
-  event:AnyRow;mode:EditMode;setMode:(m:EditMode)=>void;onBack:()=>void;
+  event:AnyRow;onBack:()=>void;
   onSave:(id:string,patch:AnyRow)=>Promise<AnyRow|null>;notify:(m:string)=>void;
   guests:AnyRow[];schedule:AnyRow[];faqs:AnyRow[];
   onAddGuest:(eventId:string,payload:AnyRow)=>void;onUpdateGuest:(id:string,patch:AnyRow)=>void;onDeleteGuest:(id:string)=>void;
@@ -532,8 +676,8 @@ function EventWizard({
   const completed=state.wizard_completed||{};
 
   const steps=[
-    ["Identidade","identity"],["Data e local","datetime_location"],["Público e entrada","audience_admission"],["Participações","participants"],
-    ["Programação","schedule"],["Conteúdo","content"],["Extras","extras"],["Revisão","review"]
+    ["Apresentação","identity"],["Data e local","datetime_location"],["Entrada","audience_admission"],["Participações","participants"],
+    ["Programação","schedule"],["Texto da página","content"],["Complementos","extras"],["Publicar","review"]
   ] as const;
 
   async function uploadCover(file:File){
@@ -600,11 +744,11 @@ function EventWizard({
   return <div className="event-wizard">
     <div className="event-wizard-top">
       <button className="admin-back" onClick={onBack}><ChevronLeft size={18}/>Eventos</button>
-      <ModeSwitch mode={mode} setMode={setMode}/>
+      <span className={"event-editor-status "+String(state.status||"RASCUNHO").toLowerCase()}>{state.status==="PUBLICADO"?"Publicado":state.status==="ENCERRADO"?"Encerrado":"Rascunho"}</span>
     </div>
 
     <div className="event-wizard-heading">
-      <div><span className="eyebrow">Cadastro por etapas</span><h2>{state.title||"Novo evento"}</h2><p>Cada etapa é gravada no banco antes de você avançar. Participações, programação e FAQ são salvos individualmente no momento em que você adiciona.</p></div>
+      <div><span className="eyebrow">Publicação do evento</span><h2>{state.title||"Novo evento"}</h2><p>Complete o necessário. Você pode voltar a qualquer etapa antes de publicar.</p></div>
       <a className="admin-preview-button" href={"/eventos/"+state.slug} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span>Prévia</span></a>
     </div>
 
@@ -665,14 +809,16 @@ function EventWizard({
       </>}
 
       {step===7&&<>
-        <WizardHeading icon={<SlidersHorizontal size={20}/>} title="Informações extras" text="Complete somente o que fizer sentido para este encontro."/>
+        <WizardHeading icon={<Settings2 size={20}/>} title="Informações extras" text="Complete somente o que fizer sentido para este encontro."/>
         <div className="event-faq-block"><strong>Dúvidas frequentes</strong><FaqCreate eventId={event.id} onAdd={onAddFaq}/><div className="event-nested-list">{faqs.map(item=><FaqEditor key={item.id} item={item} onSave={onUpdateFaq} onDelete={onDeleteFaq}/>)}</div></div>
-        {mode==="advanced"&&<div className="admin-advanced-box">
-          <div className="admin-advanced-label"><SlidersHorizontal size={17}/><strong>Configurações avançadas</strong></div>
-          <div className="event-date-grid"><Field label="Data de término"><input type="date" value={endParts.date} onChange={e=>setEndDate(e.target.value)}/></Field><Field label="Horário de término"><input type="time" value={endParts.time} onChange={e=>setEndTime(e.target.value)}/></Field></div>
-          <Field label="Link do mapa"><input type="url" value={state.map_url||""} onChange={e=>set("map_url",e.target.value)} placeholder="Google Maps ou outro serviço"/></Field>
-          <Field label="Slug da página"><input value={state.slug||""} onChange={e=>set("slug",slugifyLocal(e.target.value))}/></Field>
-        </div>}
+        <details className="admin-secondary-options">
+          <summary>Detalhes opcionais</summary>
+          <div>
+            <div className="event-date-grid"><Field label="Data de término"><input type="date" value={endParts.date} onChange={e=>setEndDate(e.target.value)}/></Field><Field label="Horário de término"><input type="time" value={endParts.time} onChange={e=>setEndTime(e.target.value)}/></Field></div>
+            <Field label="Link do mapa"><input type="url" value={state.map_url||""} onChange={e=>set("map_url",e.target.value)} placeholder="Google Maps ou outro serviço"/></Field>
+            <Field label="Endereço da página"><input value={state.slug||""} onChange={e=>set("slug",slugifyLocal(e.target.value))}/></Field>
+          </div>
+        </details>
       </>}
 
       {step===8&&<>
@@ -768,17 +914,40 @@ function FaqEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:A
 }
 
 function TestimonialPublicationEditor({item,onSave}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void}){
-  const[state,setState]=useState<AnyRow>({...item});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
+  const[state,setState]=useState<AnyRow>({...item});
+  const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
   const visible=!!state.published_at;
-  return <details className="admin-publication-editor"><summary><span>Edição pública</span><small>{visible?"Visível no site":"Oculto"}</small></summary><div className="admin-section-body">
-    <div className="admin-inline-toggle"><div><strong>Exibir testemunho</strong><span>Ocultar preserva o conteúdo no painel.</span></div><button className={visible?"on":""} onClick={()=>set("published_at",visible?null:new Date().toISOString())} type="button"><span/></button></div>
-    <Field label="Título"><input value={state.public_title||""} onChange={e=>set("public_title",e.target.value)}/></Field>
+  function persist(publishedAt:any){
+    set("published_at",publishedAt);
+    onSave(item.id,{
+      public_title:state.public_title,
+      public_display_name:state.public_display_name,
+      public_excerpt:state.public_excerpt||null,
+      public_text:state.public_text,
+      featured:state.featured===true,
+      published_at:publishedAt
+    });
+  }
+  return <section className="admin-publication-editor admin-publication-workflow">
+    <div className="admin-publication-heading">
+      <div><span className="eyebrow">Publicação</span><h3>Como este testemunho vai aparecer</h3><p>Revise título, nome e texto antes de tornar público.</p></div>
+      <span className={"status-pill "+(visible?"published":"")}>{visible?"Publicado":"Rascunho"}</span>
+    </div>
+    <Field label="Título público"><input value={state.public_title||""} onChange={e=>set("public_title",e.target.value)}/></Field>
     <Field label="Nome exibido"><input value={state.public_display_name||""} onChange={e=>set("public_display_name",e.target.value)}/></Field>
     <Field label="Resumo"><textarea value={state.public_excerpt||""} onChange={e=>set("public_excerpt",e.target.value)}/></Field>
     <Field label="Texto publicado"><textarea value={state.public_text||""} onChange={e=>set("public_text",e.target.value)}/></Field>
     <label className="admin-check"><input type="checkbox" checked={state.featured===true} onChange={e=>set("featured",e.target.checked)}/>Destacar na página inicial</label>
-    <button className="admin-save-button" onClick={()=>onSave(item.id,{public_title:state.public_title,public_display_name:state.public_display_name,public_excerpt:state.public_excerpt||null,public_text:state.public_text,featured:state.featured===true,published_at:state.published_at})}><Save size={17}/>Salvar publicação</button>
-  </div></details>
+    <div className="admin-publication-actions">
+      {visible?<>
+        <button className="primary" type="button" onClick={()=>persist(state.published_at)}>Salvar alterações</button>
+        <button className="ghost-danger" type="button" onClick={()=>persist(null)}>Ocultar do site</button>
+      </>:<>
+        <button type="button" onClick={()=>persist(null)}>Salvar rascunho</button>
+        <button className="primary" type="button" onClick={()=>persist(new Date().toISOString())}>Publicar no site</button>
+      </>}
+    </div>
+  </section>;
 }
 
 function ScriptureEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
@@ -805,17 +974,19 @@ function AlbumEditor({album,onSave,onDelete}:{album:AnyRow;onSave:(id:string,pat
 function PhotoEditor({photo,albums,onSave,onDelete}:{photo:AnyRow;albums:AnyRow[];onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
   const[state,setState]=useState<AnyRow>({...photo});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
   const visible=state.is_private!==true;
-  return <figure className={"admin-photo-manage "+(!visible?"is-hidden":"")}>
-    <img src={state.url} alt={state.alt_text||""}/>
-    <figcaption>
-      <div className="admin-photo-status"><span>{visible?"Visível":"Oculta"}</span>{state.featured&&<span>Destaque</span>}</div>
+  return <details className={"admin-photo-manage "+(!visible?"is-hidden":"")}>
+    <summary>
+      <img src={state.url} alt={state.alt_text||""}/>
+      <span className="admin-photo-status">{visible?"Publicada":"Oculta"}{state.featured?" · Destaque":""}</span>
+    </summary>
+    <div className="admin-photo-edit-body">
       <Field label="Descrição"><input value={state.alt_text||""} onChange={e=>set("alt_text",e.target.value)}/></Field>
       <Field label="Álbum"><select value={state.album_id||""} onChange={e=>set("album_id",e.target.value||null)}><option value="">Galeria geral</option>{albums.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></Field>
       <label className="admin-check"><input type="checkbox" checked={state.featured===true} onChange={e=>set("featured",e.target.checked)}/>Destacar na página inicial</label>
       <label className="admin-check"><input type="checkbox" checked={visible} onChange={e=>set("is_private",!e.target.checked)}/>Exibir no site</label>
-      <div className="admin-record-actions compact"><button className="admin-save-button" onClick={()=>onSave(photo.id,{alt_text:state.alt_text||null,album_id:state.album_id||null,featured:state.featured===true,is_private:state.is_private===true,sort_order:Number(state.sort_order)||0})}><Save size={16}/>Salvar</button><button className="admin-remove-button" onClick={()=>onDelete(photo.id)}><Trash2 size={16}/></button></div>
-    </figcaption>
-  </figure>
+      <div className="admin-record-actions compact"><button className="admin-save-button" onClick={()=>onSave(photo.id,{alt_text:state.alt_text||null,album_id:state.album_id||null,featured:state.featured===true,is_private:state.is_private===true,sort_order:Number(state.sort_order)||0})}><Save size={16}/>Salvar</button><button className="admin-remove-button" onClick={()=>onDelete(photo.id)}><Trash2 size={16}/>Excluir</button></div>
+    </div>
+  </details>;
 }
 
 function InstagramAdminEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
@@ -836,10 +1007,10 @@ function BrandSettings({value,onSave,notify}:{value:AnyRow;onSave:(v:AnyRow)=>vo
 }
 function ContactSettings({value,onSave}:{value:AnyRow;onSave:(v:AnyRow)=>void}){
   const[state,setState]=useState<AnyRow>({...value});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
-  return <div className="form"><Field label="Instagram"><input value={state.instagram||""} onChange={e=>set("instagram",e.target.value)}/></Field><Field label="WhatsApp"><input value={state.whatsapp||""} onChange={e=>set("whatsapp",e.target.value)}/></Field><Field label="E-mail"><input value={state.email||""} onChange={e=>set("email",e.target.value)}/></Field><button className="admin-save-button" onClick={()=>onSave(state)}><Save size={18}/>Salvar contato</button></div>
+  return <div className="form"><Field label="WhatsApp"><input value={state.whatsapp||""} onChange={e=>set("whatsapp",e.target.value)}/></Field><Field label="E-mail"><input value={state.email||""} onChange={e=>set("email",e.target.value)}/></Field><button className="admin-save-button" onClick={()=>onSave(state)}><Save size={17}/>Salvar contato</button></div>
 }
 function SocialEditor({item,onSave}:{item:AnyRow;onSave:(id:string,url:string)=>void}){const[url,setUrl]=useState(item.url||"");return <div className="admin-inline-editor"><strong>{item.label}</strong><input value={url} onChange={e=>setUrl(e.target.value)}/><button onClick={()=>onSave(item.id,url)}><Save size={16}/></button></div>}
-function SettingCard({title,children}:{title:string;children:React.ReactNode}){return <section className="admin-settings-card"><h3>{title}</h3>{children}</section>}
+function SettingCard({title,children}:{title:string;children:React.ReactNode}){return <details className="admin-settings-card"><summary><span>{title}</span><ChevronRight size={17}/></summary><div className="admin-settings-body">{children}</div></details>}
 
 function ImagePicker({value,onChange,onUpload}:{value:string;onChange:(v:string)=>void;onUpload:(file:File)=>void}){
   return <div className="admin-image-picker">
