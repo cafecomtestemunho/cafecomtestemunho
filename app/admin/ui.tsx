@@ -513,71 +513,115 @@ function ModeSwitch({mode,setMode}:{mode:EditMode;setMode:(m:EditMode)=>void}){
 }
 function Field({label,children,hint}:{label:string;children:React.ReactNode;hint?:string}){return <div className="field"><label>{label}</label>{children}{hint&&<small className="field-hint">{hint}</small>}</div>}
 
-function SectionEditor({section,mode,title,onSave,notify}:{section:AnyRow;mode:EditMode;title:string;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
+function SectionEditor({section,title,onSave,notify}:{section:AnyRow;mode:EditMode;title:string;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
   const isHomeHero=section.section_key==="home_hero";
   const isHomeIntro=section.section_key==="home_intro";
   const isHomeWord=section.section_key==="home_word";
-  const isInternalHero=["about_mission","agenda_hero","photos_hero","testimonials_hero","submit_testimonial_hero"].includes(section.section_key);
+  const imageOnlyHero=["agenda_hero","photos_hero","testimonials_hero"].includes(section.section_key);
+  const isInternalHero=["about_mission","submit_testimonial_hero"].includes(section.section_key);
+  const isAgendaIntro=section.section_key==="agenda_intro";
+  const isAgendaCta=section.section_key==="agenda_cta";
+  const isTestimonialsCta=section.section_key==="testimonials_cta";
   const[t,setT]=useState(section.title||""),[sub,setSub]=useState(section.subtitle||""),[body,setBody]=useState(section.body||""),[visible,setVisible]=useState(section.visible!==false);
   const[image,setImage]=useState(section.image_url||""),[ctaLabel,setCtaLabel]=useState(section.cta_label||""),[ctaUrl,setCtaUrl]=useState(section.cta_url||"");
   const[heroLogo,setHeroLogo]=useState(section.settings?.logo_url||"");
-  const[order,setOrder]=useState(String(section.sort_order??0)),[theme,setTheme]=useState(section.theme||"default"),[alignment,setAlignment]=useState(section.alignment||"left");
-  const[background,setBackground]=useState(section.settings?.background_style||"default"),[motion,setMotion]=useState(section.settings?.motion||"fade");
-  async function upload(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/secoes");notify("Enviando imagem...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setImage(data.url);notify("Imagem enviada. Salve a seção para aplicar.");}
-  async function uploadHeroLogo(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/hero");notify("Enviando logotipo...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setHeroLogo(data.url);notify("Logotipo enviado. Salve a Hero para aplicar.");}
-  function save(){onSave(section.id,{title:t,subtitle:sub||null,body,image_url:image||null,visible,cta_label:ctaLabel||null,cta_url:ctaUrl||null,sort_order:Number(order)||0,theme,alignment,settings:{...(section.settings||{}),background_style:background,motion,logo_url:heroLogo||null}})}
-  return <details className="admin-section-card" open={mode==="basic"}>
-    <summary><div><span>{title}</span><small>{visible?"Visível":"Oculta"}</small></div><ChevronRight size={18}/></summary>
+
+  async function upload(file:File){
+    const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/secoes");notify("Enviando imagem...");
+    const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();
+    if(!res.ok){notify(data.error||"Falha no upload.");return}
+    setImage(data.url);notify("Imagem enviada. Salve a seção para aplicar.");
+  }
+  async function uploadHeroLogo(file:File){
+    const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/hero");notify("Enviando logotipo...");
+    const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();
+    if(!res.ok){notify(data.error||"Falha no upload.");return}
+    setHeroLogo(data.url);notify("Logotipo enviado. Salve a Hero para aplicar.");
+  }
+  function save(){
+    onSave(section.id,{
+      title:t,subtitle:sub||null,body,image_url:image||null,visible,
+      cta_label:ctaLabel||null,cta_url:ctaUrl||null,
+      sort_order:section.sort_order??0,theme:section.theme||"default",alignment:section.alignment||"left",
+      settings:{...(section.settings||{}),logo_url:heroLogo||null}
+    });
+  }
+
+  return <details className="admin-section-card">
+    <summary><div><span>{title}</span><small>{visible?"Visível no site":"Oculta no site"}</small></div><ChevronRight size={18}/></summary>
     <div className="admin-section-body">
-      <div className="admin-inline-toggle"><div><strong>Exibir seção</strong><span>Controla se esse bloco aparece no site.</span></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button" aria-label="Alternar visibilidade"><span/></button></div>
-      {isHomeHero?<>
-        <Field label="Imagem de fundo da Hero" hint="Essa imagem ocupa a primeira tela inteira. Prefira uma foto vertical ou com o assunto principal no centro."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
-        <Field label="Logotipo da Hero" hint="Se ficar vazio, o sistema usa o logotipo principal cadastrado em Ajustes."><ImagePicker value={heroLogo} onChange={setHeroLogo} onUpload={uploadHeroLogo}/></Field>
-        <Field label="Chamada curta"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Ex.: Fé · acolhimento · testemunho"/></Field>
+      <div className="admin-inline-toggle"><div><strong>Exibir seção</strong><span>{visible?"Esta seção aparece no site.":"Esta seção está escondida."}</span></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button" aria-label="Alternar visibilidade"><span/></button></div>
+
+      {imageOnlyHero?<>
+        <div className="admin-fixed-copy-note"><strong>Conteúdo visual da Hero</strong><span>O texto desta Hero faz parte do design da página. Aqui você troca somente a imagem de fundo.</span></div>
+        <Field label="Imagem de fundo"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+      </>:isAgendaIntro?<>
+        <div className="admin-fixed-copy-note"><strong>Seção de próximos encontros</strong><span>O título e a chamada fazem parte do layout atual. Use este controle apenas para exibir ou ocultar a seção.</span></div>
+      </>:isAgendaCta?<>
+        <div className="admin-fixed-copy-note"><strong>Chamada para participar</strong><span>A copy já está definida no layout. Você pode trocar a imagem de fundo e o destino do botão.</span></div>
+        <Field label="Imagem de fundo"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Destino do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/agenda"/></Field>
+      </>:isTestimonialsCta?<>
+        <div className="admin-fixed-copy-note"><strong>Chamada para enviar testemunho</strong><span>O texto faz parte do layout atual. Aqui você controla a visibilidade e o destino do botão.</span></div>
+        <Field label="Destino do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/enviar-testemunho"/></Field>
+      </>:isHomeHero?<>
+        <Field label="Imagem de fundo da Hero" hint="Prefira uma foto vertical ou com o assunto principal no centro."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Logotipo da Hero" hint="Se ficar vazio, o sistema usa o logotipo principal."><ImagePicker value={heroLogo} onChange={setHeroLogo} onUpload={uploadHeroLogo}/></Field>
+        <Field label="Chamada curta"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
         <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
-        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)} placeholder="Ex.: Conheça a história"/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/sobre"/></Field></div>
+        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Destino"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>
       </>:isInternalHero?<>
-        <Field label="Imagem de fundo da Hero" hint="Opcional. Use uma imagem delicada, sem texto, com o assunto principal afastado das bordas. A página aplica automaticamente o degradê para manter a leitura."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
-        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Ex.: Como tudo começou"/></Field>
-        <Field label="Título da Hero"><input value={t} onChange={e=>setT(e.target.value)} placeholder="Título curto e delicado"/></Field>
-        <Field label="Texto de apoio"><textarea value={body} onChange={e=>setBody(e.target.value)} placeholder="Um parágrafo curto para apresentar esta página."/></Field>
+        <Field label="Imagem de fundo da Hero"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto de apoio"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
       </>:isHomeWord?<>
-        <Field label="Logotipo desta seção" hint="Cadastre aqui a versão horizontal escura da logotipo. Ela aparece centralizada no final da seção Palavra para este tempo. Prefira PNG ou WebP com fundo transparente."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Logotipo desta seção"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
       </>:isHomeIntro?<>
-        <Field label="Imagem de fundo da seção" hint="Use a arte vertical sem texto. No celular ela ocupa toda a seção e recebe o conteúdo por cima. Recomendado: 1080 × 1920 px ou proporção 9:16."><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
-        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Nossa história"/></Field>
-        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)} placeholder="Um projeto que nasceu de um testemunho"/></Field>
+        <Field label="Imagem de fundo"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
-        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)} placeholder="Conhecer a história completa"/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)} placeholder="/sobre"/></Field></div>
+        <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Destino"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>
       </>:<>
         <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Subtítulo"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
         <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
         <Field label="Imagem da seção"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        {(section.cta_label||section.cta_url)&&<div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Destino"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>}
       </>}
-      {mode==="advanced"&&<div className="admin-advanced-box">
-        <div className="admin-advanced-label"><SlidersHorizontal size={17}/><strong>Configurações avançadas</strong></div>
-        {!isHomeHero&&!isHomeIntro&&!isHomeWord&&!isInternalHero&&<div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Link do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>}
-        <div className="admin-two-col"><Field label="Ordem"><input type="number" value={order} onChange={e=>setOrder(e.target.value)}/></Field><Field label="Alinhamento"><select value={alignment} onChange={e=>setAlignment(e.target.value)}><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option></select></Field></div>
-        <div className="admin-two-col"><Field label="Tema"><select value={theme} onChange={e=>setTheme(e.target.value)}><option value="default">Padrão</option><option value="light">Claro</option><option value="dark">Escuro</option><option value="warm">Acolhedor</option></select></Field><Field label="Fundo"><select value={background} onChange={e=>setBackground(e.target.value)}><option value="default">Padrão</option><option value="paper">Papel</option><option value="soft">Suave</option><option value="dark">Escuro</option><option value="image">Imagem</option></select></Field></div>
-        <Field label="Microanimação"><select value={motion} onChange={e=>setMotion(e.target.value)}><option value="fade">Entrada suave</option><option value="rise">Subir suavemente</option><option value="none">Sem animação</option></select></Field>
-        <Field label="Chave interna" hint="Somente leitura. Identifica a seção no sistema."><input value={section.section_key} readOnly/></Field>
-      </div>}
-      <button className="admin-save-button" onClick={save}><Save size={18}/>Salvar seção</button>
+
+      <button className="admin-save-button" onClick={save}><Save size={17}/>Salvar alterações</button>
     </div>
-  </details>
+  </details>;
 }
 
-function StoryEditor({chapter,mode,onSave,onDelete,notify}:{chapter:AnyRow;mode:EditMode;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void;notify:(m:string)=>void}){
-  const[t,setT]=useState(chapter.title||""),[body,setBody]=useState(chapter.body||""),[eyebrow,setEyebrow]=useState(chapter.eyebrow||""),[quote,setQuote]=useState(chapter.quote||""),[image,setImage]=useState(chapter.image_url||""),[visible,setVisible]=useState(chapter.visible!==false),[order,setOrder]=useState(String(chapter.sort_order??0));
-  async function upload(file:File){const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/historia");notify("Enviando imagem...");const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();if(!res.ok){notify(data.error||"Falha no upload.");return}setImage(data.url);notify("Imagem enviada. Salve o capítulo.");}
-  return <details className="admin-section-card"><summary><div><span>{t||"Capítulo"}</span><small>{eyebrow}</small></div><ChevronRight size={18}/></summary><div className="admin-section-body">
-    <div className="admin-inline-toggle"><div><strong>Exibir capítulo</strong></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button"><span/></button></div>
-    <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field><Field label="Narrativa"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
-    {mode==="advanced"&&<><Field label="Marcador"><input value={eyebrow} onChange={e=>setEyebrow(e.target.value)}/></Field><Field label="Frase em destaque"><textarea value={quote} onChange={e=>setQuote(e.target.value)}/></Field><Field label="Imagem"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field><Field label="Ordem"><input type="number" value={order} onChange={e=>setOrder(e.target.value)}/></Field></>}
-    <div className="admin-record-actions"><button className="admin-save-button" onClick={()=>onSave(chapter.id,{title:t,body,eyebrow,quote:quote||null,image_url:image||null,visible,sort_order:Number(order)||0})}><Save size={18}/>Salvar capítulo</button><button className="admin-remove-button" onClick={()=>onDelete(chapter.id)}><Trash2 size={17}/>Remover</button></div>
-  </div></details>
+function StoryEditor({chapter,onSave,onDelete,notify}:{chapter:AnyRow;mode:EditMode;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void;notify:(m:string)=>void}){
+  const[t,setT]=useState(chapter.title||""),[body,setBody]=useState(chapter.body||""),[eyebrow,setEyebrow]=useState(chapter.eyebrow||""),[quote,setQuote]=useState(chapter.quote||""),[image,setImage]=useState(chapter.image_url||""),[visible,setVisible]=useState(chapter.visible!==false);
+  async function upload(file:File){
+    const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/historia");notify("Enviando imagem...");
+    const res=await fetch("/api/admin/upload",{method:"POST",body:fd});const data=await res.json();
+    if(!res.ok){notify(data.error||"Falha no upload.");return}
+    setImage(data.url);notify("Imagem enviada. Salve o capítulo.");
+  }
+  return <details className="admin-section-card">
+    <summary><div><span>{t||"Capítulo"}</span><small>{visible?"Visível":"Oculto"}</small></div><ChevronRight size={18}/></summary>
+    <div className="admin-section-body">
+      <div className="admin-inline-toggle"><div><strong>Exibir capítulo</strong></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button"><span/></button></div>
+      <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+      <Field label="Narrativa"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+      <details className="admin-secondary-options">
+        <summary>Complementos do capítulo</summary>
+        <div>
+          <Field label="Marcador"><input value={eyebrow} onChange={e=>setEyebrow(e.target.value)}/></Field>
+          <Field label="Frase em destaque"><textarea value={quote} onChange={e=>setQuote(e.target.value)}/></Field>
+          <Field label="Imagem"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
+        </div>
+      </details>
+      <div className="admin-record-actions"><button className="admin-save-button" onClick={()=>onSave(chapter.id,{title:t,body,eyebrow,quote:quote||null,image_url:image||null,visible,sort_order:chapter.sort_order??0})}><Save size={17}/>Salvar capítulo</button><button className="admin-remove-button" onClick={()=>onDelete(chapter.id)}><Trash2 size={16}/>Remover</button></div>
+    </div>
+  </details>;
 }
 
 function EventWizard({
