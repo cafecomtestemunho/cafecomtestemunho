@@ -24,9 +24,10 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
   ]);
   if(!event)return Response.json({error:"Evento não encontrado."},{status:404});
   if(error)return Response.json({error:"Não foi possível carregar as confirmações."},{status:500});
+  const currentEvent=event;
 
   const pdf=await PDFDocument.create();
-  pdf.setTitle("Confirmações de presença - "+safe(event.title));
+  pdf.setTitle("Confirmações de presença - "+safe(currentEvent.title));
   pdf.setAuthor("Café com Testemunho");
   const regular=await pdf.embedFont(StandardFonts.Helvetica);
   const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -39,12 +40,12 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     page=pdf.addPage([W,H]);pageNumber++;
     page.drawText("CAFÉ COM TESTEMUNHO",{x:M,y:H-52,size:10,font:bold,color:muted});
     page.drawText("Lista de confirmações de presença",{x:M,y:H-82,size:20,font:bold,color:bodyColor});
-    const titleLines=wrap(safe(event.title),W-M*2,bold,13);
+    const titleLines=wrap(safe(currentEvent.title),W-M*2,bold,13);
     let ty=H-106;
     for(const t of titleLines){page.drawText(t,{x:M,y:ty,size:13,font:bold,color:bodyColor});ty-=16}
     const details=[
-      event.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"long",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(event.starts_at)):"",
-      [event.venue,event.city].filter(Boolean).join(" · ")
+      currentEvent.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"long",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(currentEvent.starts_at)):"",
+      [currentEvent.venue,currentEvent.city].filter(Boolean).join(" · ")
     ].filter(Boolean).join("  |  ");
     if(details)page.drawText(safe(details),{x:M,y:ty-4,size:9,font:regular,color:muted,maxWidth:W-M*2});
     page.drawText("Total: "+rows.length+" confirmação"+(rows.length===1?"":"ões"),{x:M,y:ty-24,size:10,font:bold,color:bodyColor});
@@ -79,7 +80,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
 
   await s.from("audit_logs").insert({user_id:user.id,action:"EVENT_RSVP_PDF_DOWNLOADED",entity_type:"event",entity_id:id,metadata:{count:rows.length}});
   const bytes=await pdf.save();
-  const filename="confirmacoes-"+String(event.slug||event.id).replace(/[^a-z0-9-_]/gi,"-")+".pdf";
+  const filename="confirmacoes-"+String(currentEvent.slug||currentEvent.id).replace(/[^a-z0-9-_]/gi,"-")+".pdf";
   return new Response(Buffer.from(bytes),{headers:{"Content-Type":"application/pdf","Content-Disposition":'attachment; filename="'+filename+'"',"Cache-Control":"no-store"}});
 }
 
