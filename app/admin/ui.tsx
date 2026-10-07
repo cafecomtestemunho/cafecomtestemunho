@@ -509,6 +509,12 @@ function SectionEditor({section,title,onSave,notify}:{section:AnyRow;title:strin
   const isAgendaIntro=section.section_key==="agenda_intro";
   const isAgendaCta=section.section_key==="agenda_cta";
   const isTestimonialsCta=section.section_key==="testimonials_cta";
+  const isHomeCta=section.section_key==="home_cta";
+  const isAboutWord=section.section_key==="about_word";
+  const isAboutPhotos=section.section_key==="about_photos";
+  const isAboutTestimony=section.section_key==="about_testimony";
+  const isAboutCta=section.section_key==="about_cta";
+  const isSubmitCopy=["submit_testimonial_intro","submit_testimonial_privacy"].includes(section.section_key);
   const[t,setT]=useState(section.title||""),[sub,setSub]=useState(section.subtitle||""),[body,setBody]=useState(section.body||""),[visible,setVisible]=useState(section.visible!==false);
   const[image,setImage]=useState(section.image_url||""),[ctaLabel,setCtaLabel]=useState(section.cta_label||""),[ctaUrl,setCtaUrl]=useState(section.cta_url||"");
   const[heroLogo,setHeroLogo]=useState(section.settings?.logo_url||"");
@@ -567,10 +573,33 @@ function SectionEditor({section,title,onSave,notify}:{section:AnyRow;title:strin
         <Field label="Logotipo desta seção"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
       </>:isHomeIntro?<>
         <Field label="Imagem de fundo"><ImagePicker value={image} onChange={setImage} onUpload={upload}/></Field>
-        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
         <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
         <div className="admin-two-col"><Field label="Texto do botão"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Destino"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>
+      </>:isHomeCta?<>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-fixed-copy-note"><strong>Botões desta seção</strong><span>Os dois botões seguem os fluxos oficiais: Agenda e Enviar testemunho.</span></div>
+      </>:isAboutWord?<>
+        <div className="admin-fixed-copy-note"><strong>Palavra da página Sobre</strong><span>O versículo e a reflexão são editados em Ajustes → Palavra. Aqui você controla apenas esta seção e a chamada pequena.</span></div>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)} placeholder="Ex.: Bíblia"/></Field>
+      </>:isAboutPhotos?<>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto opcional"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-fixed-copy-note"><strong>Fotos desta seção</strong><span>As imagens vêm automaticamente da Galeria pública. Não é necessário cadastrar foto aqui.</span></div>
+      </>:isAboutTestimony?<>
+        <Field label="Chamada pequena"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-fixed-copy-note"><strong>Testemunho fundador</strong><span>O relato completo é administrado no fluxo de Testemunhos.</span></div>
+      </>:isAboutCta?<>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
+        <div className="admin-two-col"><Field label="Texto do botão principal"><input value={ctaLabel} onChange={e=>setCtaLabel(e.target.value)}/></Field><Field label="Destino do botão"><input value={ctaUrl} onChange={e=>setCtaUrl(e.target.value)}/></Field></div>
+      </>:isSubmitCopy?<>
+        <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
+        <Field label="Texto"><textarea value={body} onChange={e=>setBody(e.target.value)}/></Field>
       </>:<>
         <Field label="Título"><input value={t} onChange={e=>setT(e.target.value)}/></Field>
         <Field label="Subtítulo"><input value={sub} onChange={e=>setSub(e.target.value)}/></Field>
