@@ -3843,10 +3843,10 @@
   will-change:transform;
 }
 .photo-showcase-track-forward{
-  animation:photosTrackForward 30s linear infinite;
+  animation:photosTrackForward var(--photo-duration, 90s) linear infinite;
 }
 .photo-showcase-track-reverse{
-  animation:photosTrackReverse 34s linear infinite;
+  animation:photosTrackReverse var(--photo-duration, 100s) linear infinite;
 }
 .photo-showcase:active .photo-showcase-track,
 .photo-showcase:focus-within .photo-showcase-track{
@@ -6169,25 +6169,46 @@
 .admin-upload-error{display:block;margin-top:7px;color:#8f2f24;font-size:.72rem;font-weight:700;line-height:1.35}
 
 
-/* Event RSVP */
-.event-rsvp-card{display:grid;gap:20px}
-.event-rsvp-heading>span{display:block;font-size:.72rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#9a6c43;margin-bottom:7px}
-.event-rsvp-heading h2{margin:0 0 7px;font-size:1.45rem;color:#422515}
-.event-rsvp-heading p{margin:0;color:#78685d;line-height:1.55}
+/* Event RSVP — highlighted invitation to confirm */
+.event-rsvp-card{
+  display:grid;
+  gap:20px;
+  background:linear-gradient(155deg,#4b2917 0%,#32180d 100%);
+  border:1px solid rgba(225,184,125,.42);
+  box-shadow:0 20px 44px rgba(54,25,12,.19);
+  color:#fff6eb;
+}
+.event-rsvp-heading>span{display:block;font-size:.72rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#e9bd80;margin-bottom:7px}
+.event-rsvp-heading h2{margin:0 0 7px;font-size:1.45rem;color:#fff9f3}
+.event-rsvp-heading p{margin:0;color:#f0dfce;line-height:1.55}
 .event-rsvp-form{display:grid;gap:13px}
 .event-rsvp-form label{display:grid;gap:6px}
-.event-rsvp-form label>span{font-size:.76rem;font-weight:850;color:#5e4030}
-.event-rsvp-form input{width:100%;min-height:50px;border:1px solid #ddcdbd;border-radius:13px;background:#fff;padding:0 14px;font:inherit;color:#3d2a20;outline:none}
-.event-rsvp-form input:focus{border-color:#a9794b;box-shadow:0 0 0 3px rgba(169,121,75,.12)}
-.event-rsvp-form button{min-height:50px;border:0;border-radius:13px;background:#43210f;color:#fff;font-weight:900;font-size:.9rem;padding:0 18px}
-.event-rsvp-form button:disabled{opacity:.65}
-.event-rsvp-error{margin:0;color:#9b3026;font-size:.78rem;font-weight:700}
+.event-rsvp-form label>span{font-size:.76rem;font-weight:850;color:#fff1df}
+.event-rsvp-form input{width:100%;min-height:50px;border:1px solid #ddcdbd;border-radius:13px;background:#fffaf5;padding:0 14px;font:inherit;color:#3d2a20;outline:none}
+.event-rsvp-form input:focus{border-color:#e6ba7c;box-shadow:0 0 0 3px rgba(236,193,131,.3)}
+.event-rsvp-form button{
+  min-height:50px;
+  border:1px solid rgba(255,224,167,.7);
+  border-radius:13px;
+  background:linear-gradient(115deg,#bc8544 0%,#f1d5a2 49%,#c28b47 100%);
+  color:#362113;
+  font-weight:900;
+  font-size:.9rem;
+  padding:0 18px;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(22,10,4,.22);
+  transition:filter .2s ease,transform .2s ease,box-shadow .2s ease;
+}
+.event-rsvp-form button:hover:not(:disabled){filter:brightness(1.07);transform:translateY(-1px);box-shadow:0 10px 24px rgba(22,10,4,.28)}
+.event-rsvp-form button:focus-visible{outline:3px solid #fff2df;outline-offset:3px}
+.event-rsvp-form button:disabled{opacity:.65;cursor:wait}
+.event-rsvp-error{margin:0;color:#ffd4c8;font-size:.78rem;font-weight:700}
 .event-rsvp-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
-.event-rsvp-success{grid-template-columns:auto 1fr;align-items:start;background:#faf5ee}
-.event-rsvp-success svg{color:#7c5a35;margin-top:2px}
-.event-rsvp-success span{display:block;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#8b633e}
-.event-rsvp-success h2{margin:4px 0 5px;color:#422515}
-.event-rsvp-success p{margin:0;color:#78685d}
+.event-rsvp-success{grid-template-columns:auto 1fr;align-items:start}
+.event-rsvp-success svg{color:#f0cb8e;margin-top:2px}
+.event-rsvp-success span{display:block;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#e9bd80}
+.event-rsvp-success h2{margin:4px 0 5px;color:#fff9f3}
+.event-rsvp-success p{margin:0;color:#f0dfce}
 
 .event-rsvp-toggle-card{margin-top:8px;padding:13px;border:1px solid #e2d2c0;border-radius:14px;background:#fbf5ee}
 .event-rsvp-toggle{align-items:flex-start!important}
