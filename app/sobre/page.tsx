@@ -16,15 +16,15 @@ function AboutDivider({tone,lightSurface="paper"}:{tone:"light-dark"|"dark-light
         :"#fffaf4";
 
   return <div className={"about-wave about-wave-"+tone+" about-wave-light-"+lightSurface} aria-hidden="true">
-    <svg className="about-wave-svg" viewBox="0 0 1200 112" preserveAspectRatio="none">
+    <svg className="about-wave-svg" viewBox="0 0 1200 84" preserveAspectRatio="none">
       <path
         className="about-wave-next-fill"
         fill={nextColor}
-        d="M0 42C190 21 338 27 510 51C704 78 888 76 1200 34V112H0Z"
+        d="M0 24C185 7 332 12 505 31C703 54 887 54 1200 18V84H0Z"
       />
-      <path className="about-wave-gold-band" d="M0 42C190 21 338 27 510 51C704 78 888 76 1200 34"/>
-      <path className="about-wave-gold-soft" d="M0 37C190 16 338 22 510 46C704 73 888 71 1200 29"/>
-      <path className="about-wave-gold-line" d="M0 42C190 21 338 27 510 51C704 78 888 76 1200 34"/>
+      <path className="about-wave-gold-band" d="M0 24C185 7 332 12 505 31C703 54 887 54 1200 18"/>
+      <path className="about-wave-gold-soft" d="M0 19C185 2 332 7 505 26C703 49 887 49 1200 13"/>
+      <path className="about-wave-gold-line" d="M0 24C185 7 332 12 505 31C703 54 887 54 1200 18"/>
     </svg>
   </div>;
 }
