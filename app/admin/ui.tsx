@@ -797,7 +797,7 @@ function EventWizard({
       </>}
 
       {step===7&&<>
-        <WizardHeading icon={<SlidersHorizontal size={20}/>} title="Informações extras" text="Complete somente o que fizer sentido para este encontro."/>
+        <WizardHeading icon={<Settings2 size={20}/>} title="Informações extras" text="Complete somente o que fizer sentido para este encontro."/>
         <div className="event-faq-block"><strong>Dúvidas frequentes</strong><FaqCreate eventId={event.id} onAdd={onAddFaq}/><div className="event-nested-list">{faqs.map(item=><FaqEditor key={item.id} item={item} onSave={onUpdateFaq} onDelete={onDeleteFaq}/>)}</div></div>
         <details className="admin-secondary-options">
           <summary>Detalhes opcionais</summary>
