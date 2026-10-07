@@ -32,12 +32,11 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
   const regular=await pdf.embedFont(StandardFonts.Helvetica);
   const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
   const rows=rsvps||[];
-  let page:PDFPage;
+  let page:PDFPage=pdf.addPage([W,H]);
   let y=0;
-  let pageNumber=0;
+  let pageNumber=1;
 
-  function newPage(){
-    page=pdf.addPage([W,H]);pageNumber++;
+  function setupPage(){
     page.drawText("CAFÉ COM TESTEMUNHO",{x:M,y:H-52,size:10,font:bold,color:muted});
     page.drawText("Lista de confirmações de presença",{x:M,y:H-82,size:20,font:bold,color:bodyColor});
     const titleLines=wrap(safe(currentEvent.title),W-M*2,bold,13);
@@ -55,7 +54,11 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     y-=26;
   }
 
-  newPage();
+  function newPage(){
+    page=pdf.addPage([W,H]);pageNumber++;setupPage();
+  }
+
+  setupPage();
   if(!rows.length){
     page.drawText("Nenhuma confirmação recebida até o momento.",{x:M,y:y-10,size:11,font:regular,color:muted});
   }else{
