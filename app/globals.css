@@ -1203,3 +1203,235 @@
     margin-top:20px;
   }
 }
+
+
+/* About — animated section separators */
+.about-divider{
+  position:relative;
+  height:84px;
+  overflow:hidden;
+  isolation:isolate;
+  pointer-events:none;
+}
+.about-divider-wave{
+  position:absolute;
+  left:-7%;
+  right:-7%;
+  height:112px;
+  border-radius:50% 50% 0 0/38% 38% 0 0;
+  animation:aboutWaveDrift 9s ease-in-out infinite alternate;
+  transform-origin:center;
+}
+.about-divider-light-dark{
+  background:#fbf2e7;
+}
+.about-divider-light-dark .about-divider-wave{
+  bottom:-58px;
+  background:linear-gradient(180deg,#351a0d 0%,#2c160b 100%);
+  box-shadow:0 -10px 26px rgba(66,34,17,.08);
+}
+.about-divider-dark-light{
+  background:#2c160b;
+}
+.about-divider-dark-light .about-divider-wave{
+  bottom:-56px;
+  background:linear-gradient(180deg,#f9efe4 0%,#f3e3d2 100%);
+  box-shadow:0 -10px 26px rgba(0,0,0,.08);
+}
+.about-divider-light-light{
+  height:72px;
+  background:linear-gradient(180deg,#f3e3d2 0%,#f7ede2 100%);
+}
+.about-divider-light-light .about-divider-wave{
+  display:none;
+}
+.about-divider-light-dark-final{
+  background:#f3e3d2;
+}
+.about-divider-light-dark-final .about-divider-wave{
+  bottom:-58px;
+  background:linear-gradient(180deg,#351a0d 0%,#2c160b 100%);
+  box-shadow:0 -10px 26px rgba(66,34,17,.08);
+}
+
+.about-divider-seal{
+  position:absolute;
+  z-index:3;
+  left:50%;
+  top:50%;
+  width:126px;
+  display:grid;
+  grid-template-columns:1fr 18px 1fr;
+  gap:9px;
+  align-items:center;
+  transform:translate(-50%,-50%);
+  opacity:.72;
+}
+.about-divider-seal span{
+  display:block;
+  height:1px;
+  background:linear-gradient(90deg,transparent,#c18b5f);
+}
+.about-divider-seal span:last-child{
+  background:linear-gradient(90deg,#c18b5f,transparent);
+}
+.about-divider-seal i{
+  width:12px;
+  height:12px;
+  justify-self:center;
+  border:1px solid #c18b5f;
+  transform:rotate(45deg);
+  animation:aboutSealPulse 4.8s ease-in-out infinite;
+}
+.about-divider-dark-light .about-divider-seal,
+.about-divider-light-dark .about-divider-seal,
+.about-divider-light-dark-final .about-divider-seal{
+  top:44%;
+}
+.about-divider-dark-light .about-divider-seal span,
+.about-divider-light-dark .about-divider-seal span,
+.about-divider-light-dark-final .about-divider-seal span{
+  opacity:.86;
+}
+.about-divider-light-dark .about-divider-seal i,
+.about-divider-light-dark-final .about-divider-seal i{
+  background:rgba(255,248,239,.04);
+}
+.about-divider-dark-light .about-divider-seal i{
+  background:rgba(255,255,255,.03);
+}
+
+.about-divider-leaf{
+  position:absolute;
+  z-index:2;
+  width:158px;
+  height:210px;
+  right:-48px;
+  top:-64px;
+  background:url("/word-botanical.svg") center/contain no-repeat;
+  opacity:.10;
+  transform:rotate(14deg);
+  animation:aboutLeafFloat 11s ease-in-out infinite alternate;
+}
+.about-divider-dark-light .about-divider-leaf{
+  left:-62px;
+  right:auto;
+  top:-54px;
+  transform:rotate(194deg);
+}
+.about-divider-light-light .about-divider-leaf{
+  width:140px;
+  height:190px;
+  right:-44px;
+  top:-54px;
+  opacity:.07;
+}
+.about-divider-light-light::before{
+  content:"";
+  position:absolute;
+  left:-48px;
+  bottom:-72px;
+  width:150px;
+  height:200px;
+  background:url("/word-botanical.svg") center/contain no-repeat;
+  opacity:.05;
+  transform:rotate(184deg);
+  animation:aboutLeafFloatAlt 13s ease-in-out infinite alternate;
+}
+
+@keyframes aboutWaveDrift{
+  0%{transform:translate3d(-1.5%,0,0) scaleX(1.015)}
+  50%{transform:translate3d(.75%,3px,0) scaleX(1.025)}
+  100%{transform:translate3d(1.5%,-2px,0) scaleX(1.01)}
+}
+@keyframes aboutSealPulse{
+  0%,100%{transform:rotate(45deg) scale(.86);opacity:.55}
+  50%{transform:rotate(45deg) scale(1.08);opacity:1}
+}
+@keyframes aboutLeafFloat{
+  0%{translate:0 0;rotate:12deg}
+  50%{translate:-7px 6px;rotate:15deg}
+  100%{translate:-14px -3px;rotate:10deg}
+}
+@keyframes aboutLeafFloatAlt{
+  0%{translate:0 0;rotate:184deg}
+  100%{translate:10px -8px;rotate:190deg}
+}
+
+/* Blend adjacent About sections into the separators */
+.about-divider-light-dark + .about-word{
+  margin-top:-1px;
+}
+.about-word + .about-divider-dark-light{
+  margin-top:-1px;
+}
+.about-divider-dark-light + .inner-memory-section,
+.about-divider-dark-light + .founder-editorial{
+  margin-top:-1px;
+}
+.about-divider-light-light + .founder-editorial{
+  margin-top:-1px;
+}
+.about-divider-light-dark-final + .inner-closing{
+  margin-top:-1px;
+}
+
+@media(max-width:820px){
+  .about-divider{
+    height:68px;
+  }
+  .about-divider-light-light{
+    height:58px;
+  }
+  .about-divider-wave{
+    height:92px;
+  }
+  .about-divider-light-dark .about-divider-wave,
+  .about-divider-dark-light .about-divider-wave,
+  .about-divider-light-dark-final .about-divider-wave{
+    bottom:-48px;
+  }
+  .about-divider-seal{
+    width:104px;
+    grid-template-columns:1fr 15px 1fr;
+    gap:7px;
+  }
+  .about-divider-seal i{
+    width:10px;
+    height:10px;
+  }
+  .about-divider-leaf{
+    width:128px;
+    height:172px;
+    right:-44px;
+    top:-58px;
+  }
+  .about-divider-dark-light .about-divider-leaf{
+    left:-54px;
+    top:-52px;
+  }
+}
+@media(max-width:420px){
+  .about-divider{
+    height:60px;
+  }
+  .about-divider-light-light{
+    height:52px;
+  }
+  .about-divider-seal{
+    width:92px;
+  }
+  .about-divider-leaf{
+    width:112px;
+    height:150px;
+    opacity:.075;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .about-divider-wave,
+  .about-divider-seal i,
+  .about-divider-leaf,
+  .about-divider-light-light::before{
+    animation:none!important;
+  }
+}
