@@ -37,13 +37,13 @@ const sectionNames:Record<string,string>={
 
 export function AdminClient({
   userId,userEmail,roles,initialEvents,initialEventGuests,initialEventSchedule,initialEventFaqs,initialTestimonials,initialPublications,initialSections,initialStory,
-  initialScriptures,initialInstagram,initialPhotos,initialAlbums,initialSocial,initialSettings
+  initialScriptures,initialInstagram,initialPhotos,initialAlbums,initialSocial,initialSettings,initialPhotoCount,initialPublicPhotoCount
 }:{
   userId:string;userEmail:string;roles:string[];
   initialEvents:AnyRow[];initialEventGuests:AnyRow[];initialEventSchedule:AnyRow[];initialEventFaqs:AnyRow[];
   initialTestimonials:AnyRow[];initialPublications:AnyRow[];initialSections:AnyRow[];initialStory:AnyRow[];
   initialScriptures:AnyRow[];initialInstagram:AnyRow[];initialPhotos:AnyRow[];initialAlbums:AnyRow[];
-  initialSocial:AnyRow[];initialSettings:AnyRow[];
+  initialSocial:AnyRow[];initialSettings:AnyRow[];initialPhotoCount:number;initialPublicPhotoCount:number;
 }){
   const s=useMemo(()=>createClient(),[]);
   const[tab,setTab]=useState<MainTab>("dashboard");
@@ -66,6 +66,8 @@ export function AdminClient({
   const[scriptures,setScriptures]=useState(initialScriptures);
   const[instagram,setInstagram]=useState(initialInstagram);
   const[photos,setPhotos]=useState(initialPhotos);
+  const[photoTotal,setPhotoTotal]=useState(initialPhotoCount);
+  const[publicPhotoTotal,setPublicPhotoTotal]=useState(initialPublicPhotoCount);
   const[albums,setAlbums]=useState(initialAlbums);
   const[social,setSocial]=useState(initialSocial);
   const[settings,setSettings]=useState(initialSettings);
@@ -239,16 +241,24 @@ export function AdminClient({
     setPhotos([payload.photo,...photos]);form.reset();notify("Foto enviada.");
   }
   async function savePhoto(id:string,patch:AnyRow){
+    const previous=photos.find(x=>x.id===id);
     const{data,error}=await s.from("media_assets").update(patch).eq("id",id).select().single();
     if(error){notify(error.message);return}
+    if(previous&&previous.is_private!==data.is_private){
+      setPublicPhotoTotal(current=>Math.max(0,current+(data.is_private===true?-1:1)));
+    }
     setPhotos(current=>current.map(x=>x.id===id?data:x));notify("Foto atualizada.");
   }
   async function deletePhoto(id:string){
     if(!window.confirm("Remover esta foto definitivamente?"))return;
+    const previous=photos.find(x=>x.id===id);
     const res=await fetch("/api/admin/photos",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
     const payload=await res.json();
     if(!res.ok){notify(payload.error||"Não foi possível remover a foto.");return}
-    setPhotos(current=>current.filter(x=>x.id!==id));notify("Foto removida.");
+    setPhotos(current=>current.filter(x=>x.id!==id));
+    setPhotoTotal(current=>Math.max(0,current-1));
+    if(previous?.is_private!==true)setPublicPhotoTotal(current=>Math.max(0,current-1));
+    notify("Foto removida.");
   }
   async function addScripture(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();const fd=new FormData(e.currentTarget);
@@ -303,8 +313,8 @@ export function AdminClient({
   const newCount=testimonials.filter(t=>t.status==="RECEBIDO").length;
   const brandSetting=settings.find(x=>x.setting_key==="brand")?.value||{};
   const contactSetting=settings.find(x=>x.setting_key==="contact")?.value||{};
-  const visiblePhotoCount=photos.filter(photo=>photo.is_private!==true).length;
-  const hiddenPhotoCount=photos.length-visiblePhotoCount;
+  const visiblePhotoCount=publicPhotoTotal;
+  const hiddenPhotoCount=Math.max(0,photoTotal-publicPhotoTotal);
   const nextEvent=events.filter(event=>event.status==="PUBLICADO").sort((a,b)=>new Date(a.starts_at||0).getTime()-new Date(b.starts_at||0).getTime())[0]||events[0];
   const filteredEvents=events.filter(event=>eventView==="all"||eventView==="draft"&&event.status==="RASCUNHO"||eventView==="published"&&event.status==="PUBLICADO"||eventView==="closed"&&event.status==="ENCERRADO");
   const filteredTestimonials=testimonials.filter(item=>{
@@ -342,7 +352,7 @@ export function AdminClient({
         <div className="admin-focus-list">
           <button onClick={()=>goTab("events")}><CalendarDays size={19}/><div><strong>Eventos</strong><span>{nextEvent?nextEvent.title:"Nenhum evento cadastrado"}</span></div><b>{events.length}</b><ChevronRight size={18}/></button>
           <button onClick={()=>goTab("testimonials")}><MessageSquareQuote size={19}/><div><strong>Testemunhos</strong><span>{newCount?newCount+" aguardando revisão":"Nenhum novo relato"}</span></div><b>{newCount}</b><ChevronRight size={18}/></button>
-          <button onClick={()=>goTab("gallery")}><Images size={19}/><div><strong>Galeria</strong><span>{visiblePhotoCount+" fotos publicadas"}</span></div><b>{photos.length}</b><ChevronRight size={18}/></button>
+          <button onClick={()=>goTab("gallery")}><Images size={19}/><div><strong>Galeria</strong><span>{visiblePhotoCount+" fotos publicadas"}</span></div><b>{photoTotal}</b><ChevronRight size={18}/></button>
         </div>
 
         <button className="admin-pages-entry" onClick={()=>goTab("pages")}><PanelsTopLeft size={18}/><div><strong>Editar páginas</strong><span>Textos, imagens e visibilidade do site</span></div><ChevronRight size={18}/></button>
@@ -424,12 +434,12 @@ export function AdminClient({
       {tab==="gallery"&&<section className="admin-screen">
         <div className="admin-section-intro"><span className="eyebrow">Galeria</span><h2>Fotos</h2><p>Envie em lote, organize por álbum e escolha o que fica visível no site.</p></div>
         <div className="admin-gallery-counts">
-          <div><strong>{photos.length}</strong><span>Total de fotos</span></div>
+          <div><strong>{photoTotal}</strong><span>Total de fotos</span></div>
           <div><strong>{visiblePhotoCount}</strong><span>Publicadas</span></div>
           <div><strong>{hiddenPhotoCount}</strong><span>Ocultas</span></div>
         </div>
 
-        <GalleryBulkUpload albums={albums} notify={notify} onUploaded={newPhotos=>setPhotos(current=>[...newPhotos,...current])}/>
+        <GalleryBulkUpload albums={albums} notify={notify} onUploaded={newPhotos=>{setPhotos(current=>[...newPhotos,...current]);setPhotoTotal(current=>current+newPhotos.length);setPublicPhotoTotal(current=>current+newPhotos.length)}}/>
 
         <section className="admin-gallery-albums">
           <div className="admin-inline-heading"><div><strong>Álbuns</strong><span>Use apenas quando precisar separar grupos de fotos.</span></div></div>
