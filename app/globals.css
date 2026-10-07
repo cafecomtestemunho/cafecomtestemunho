@@ -6149,3 +6149,17 @@
   gap:12px;
   padding:0 14px 14px;
 }
+
+
+/* Admin gallery progressive loading */
+.admin-load-more{
+  justify-self:center;
+  min-height:40px;
+  padding:0 13px;
+  border:1px solid rgba(87,49,25,.14);
+  border-radius:11px;
+  background:#fffaf5;
+  color:#63432e;
+  font-size:.72rem;
+  font-weight:820;
+}
