@@ -898,9 +898,13 @@ function TestimonialPublicationEditor({item,onSave}:{item:AnyRow;onSave:(id:stri
     <Field label="Texto publicado"><textarea value={state.public_text||""} onChange={e=>set("public_text",e.target.value)}/></Field>
     <label className="admin-check"><input type="checkbox" checked={state.featured===true} onChange={e=>set("featured",e.target.checked)}/>Destacar na página inicial</label>
     <div className="admin-publication-actions">
-      <button type="button" onClick={()=>persist(null)}>Salvar rascunho</button>
-      <button className="primary" type="button" onClick={()=>persist(state.published_at||new Date().toISOString())}>{visible?"Atualizar publicação":"Publicar no site"}</button>
-      {visible&&<button className="ghost-danger" type="button" onClick={()=>persist(null)}>Ocultar do site</button>}
+      {visible?<>
+        <button className="primary" type="button" onClick={()=>persist(state.published_at)}>Salvar alterações</button>
+        <button className="ghost-danger" type="button" onClick={()=>persist(null)}>Ocultar do site</button>
+      </>:<>
+        <button type="button" onClick={()=>persist(null)}>Salvar rascunho</button>
+        <button className="primary" type="button" onClick={()=>persist(new Date().toISOString())}>Publicar no site</button>
+      </>}
     </div>
   </section>;
 }
