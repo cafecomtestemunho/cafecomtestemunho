@@ -6,6 +6,14 @@ import{AboutScripture}from"@/components/about-scripture";
 
 export const metadata={title:"Sobre"};
 
+function AboutDivider({tone}:{tone:"light-dark"|"dark-light"|"light-light"|"light-dark-final"}){
+  return <div className={"about-divider about-divider-"+tone} aria-hidden="true">
+    <div className="about-divider-wave"/>
+    <div className="about-divider-seal"><span/><i/><span/></div>
+    <div className="about-divider-leaf"/>
+  </div>;
+}
+
 export default async function SobrePage(){
   const s=await createServerSupabaseClient();
   const[{data:mission},{data:story},{data:scripture},{data:photos},{data:founder},{data:wordSection},{data:photosSection},{data:testimonySection},{data:cta},{data:brandSetting}]=await Promise.all([
@@ -59,7 +67,10 @@ export default async function SobrePage(){
       </div>
     </section>
 
+    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="light-dark"/>}
     {wordSection?.visible!==false&&scripture&&<AboutScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} kicker={wordSection?.subtitle}/>} 
+
+    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="dark-light"/>}
 
     {photosSection?.visible!==false&&!!photos?.length&&<section className="inner-section inner-memory-section">
       <div className="container inner-narrow">
@@ -67,6 +78,8 @@ export default async function SobrePage(){
         <div className="inner-photo-strip">{photos.map((photo,i)=><Reveal key={photo.id} delay={i*45}><figure><img src={photo.url} alt={photo.alt_text||"Memória do Café com Testemunho"} loading="lazy"/></figure></Reveal>)}</div>
       </div>
     </section>}
+
+    {photosSection?.visible!==false&&!!photos?.length&&<AboutDivider tone="light-light"/>}
 
     {testimonySection?.visible!==false&&<section className="inner-founder founder-editorial">
       <div className="container inner-narrow">
@@ -91,6 +104,8 @@ export default async function SobrePage(){
         </Reveal>
       </div>
     </section>}
+
+    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark-final"/>}
 
     {cta?.visible!==false&&<section className="inner-closing">
       <div className="container inner-narrow"><Reveal className="inner-closing-copy"><HeartHandshake size={26}/><div className="inner-kicker">Faça parte</div><h2>{cta?.title||"Essa história continua sendo escrita"}</h2><p>{cta?.body||"Cada encontro, cada mulher e cada testemunho acrescentam um novo capítulo a essa caminhada."}</p><div className="inner-actions"><Link className="inner-btn primary" href={cta?.cta_url||"/agenda"}>{cta?.cta_label||"Participar de um encontro"} <ArrowRight size={16}/></Link><Link className="inner-btn ghost" href="/enviar-testemunho">Compartilhar meu testemunho</Link></div></Reveal></div>
