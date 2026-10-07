@@ -64,6 +64,7 @@ export function AdminClient({
   const[photos,setPhotos]=useState(initialPhotos);
   const[photoTotal,setPhotoTotal]=useState(initialPhotoCount);
   const[publicPhotoTotal,setPublicPhotoTotal]=useState(initialPublicPhotoCount);
+  const[loadingMorePhotos,setLoadingMorePhotos]=useState(false);
   const[albums,setAlbums]=useState(initialAlbums);
   const[social,setSocial]=useState(initialSocial);
   const[settings,setSettings]=useState(initialSettings);
@@ -219,6 +220,15 @@ export function AdminClient({
     setAlbums(current=>current.filter(x=>x.id!==id));
     setPhotos(current=>current.map(x=>x.album_id===id?{...x,album_id:null}:x));notify("Álbum removido.");
   }
+  async function loadMorePhotos(){
+    if(loadingMorePhotos||photos.length>=photoTotal)return;
+    setLoadingMorePhotos(true);
+    const{data,error}=await s.from("media_assets").select("*").eq("media_type","image").order("created_at",{ascending:false}).range(photos.length,photos.length+79);
+    setLoadingMorePhotos(false);
+    if(error){notify(error.message);return}
+    setPhotos(current=>[...current,...(data||[]).filter(item=>!current.some(existing=>existing.id===item.id))]);
+  }
+
   async function savePhoto(id:string,patch:AnyRow){
     const previous=photos.find(x=>x.id===id);
     const{data,error}=await s.from("media_assets").update(patch).eq("id",id).select().single();
@@ -433,6 +443,7 @@ export function AdminClient({
         <div className="admin-inline-heading gallery-heading"><div><strong>Fotos cadastradas</strong><span>Toque em uma foto para editar descrição, álbum ou visibilidade.</span></div></div>
         <div className="admin-photo-grid">{photos.map(p=><PhotoEditor key={p.id} photo={p} albums={albums} onSave={savePhoto} onDelete={deletePhoto}/>)}</div>
         {!photos.length&&<div className="admin-empty">Nenhuma foto cadastrada.</div>}
+        {photos.length<photoTotal&&<button className="admin-load-more" type="button" disabled={loadingMorePhotos} onClick={loadMorePhotos}>{loadingMorePhotos?"Carregando…":`Carregar mais fotos · ${photos.length} de ${photoTotal}`}</button>}
       </section>}
 
       {tab==="pages"&&<section className="admin-screen">
