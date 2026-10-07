@@ -339,7 +339,7 @@ export function AdminClient({
 
       {tab==="events"&&<section className="admin-screen">
         {!selectedEventId?<>
-          <div className="admin-section-intro"><span className="eyebrow">Publicação</span><h2>Eventos</h2><p>Crie, complete e publique cada encontro em um fluxo único.</p></div>
+          <div className="admin-section-intro"><span className="eyebrow">Publicação</span><h2>Fluxo do evento</h2><p>Crie, complete e publique cada encontro em um fluxo único.</p></div>
           <form className="event-quick-create" onSubmit={createEvent}>
             <div><strong>Criar evento</strong><span>Informe apenas o nome para começar. O restante é preenchido por etapas.</span></div>
             <Field label="Nome do evento"><input name="title" required placeholder="Ex.: Café com Testemunho"/></Field>
@@ -373,7 +373,7 @@ export function AdminClient({
 
       {tab==="testimonials"&&<section className="admin-screen">
         {!selectedTestimonial?<>
-          <div className="admin-section-intro"><span className="eyebrow">Fluxo editorial</span><h2>Testemunhos</h2><p>Leia o relato original, confirme a autorização e só então prepare a publicação.</p></div>
+          <div className="admin-section-intro"><span className="eyebrow">Fluxo editorial</span><h2>Caixa de entrada</h2><p>Leia o relato original, confirme a autorização e só então prepare a publicação.</p></div>
           <div className="admin-segmented admin-testimonial-tabs">
             <button className={testimonialView==="new"?"active":""} onClick={()=>setTestimonialView("new")}>Novos</button>
             <button className={testimonialView==="review"?"active":""} onClick={()=>setTestimonialView("review")}>Em revisão</button>
@@ -402,7 +402,7 @@ export function AdminClient({
           <div className="admin-review-actions">
             {selectedTestimonial.status==="RECEBIDO"&&<button onClick={()=>moderate(selectedTestimonial.id,"EM_ANALISE")}>Marcar em revisão</button>}
             {selectedTestimonial.publication_consent!=="PRIVATE_ONLY"&&!selectedPublication&&<button className="primary" onClick={()=>preparePublication(selectedTestimonial)}>Preparar publicação</button>}
-            {selectedTestimonial.status!=="ARQUIVADO"&&<button onClick={()=>moderate(selectedTestimonial.id,"ARQUIVADO")}>Arquivar</button>}
+            {selectedTestimonial.status==="ARQUIVADO"?<button onClick={()=>moderate(selectedTestimonial.id,"EM_ANALISE")}>Reabrir para revisão</button>:<button onClick={()=>moderate(selectedTestimonial.id,"ARQUIVADO")}>Arquivar</button>}
           </div>
 
           {selectedPublication&&<TestimonialPublicationEditor item={selectedPublication} onSave={savePublication}/>}
@@ -437,7 +437,7 @@ export function AdminClient({
 
       {tab==="pages"&&<section className="admin-screen">
         {!currentPage?<div className="admin-page-list">
-          <div className="admin-section-intro"><span className="eyebrow">Conteúdo do site</span><h2>Páginas</h2><p>Escolha uma página. Dentro dela aparecem somente os campos que realmente controlam aquela tela.</p></div>
+          <div className="admin-section-intro"><span className="eyebrow">Conteúdo do site</span><h2>Escolha uma página</h2><p>Dentro dela aparecem somente os campos que realmente controlam aquela tela.</p></div>
           {pages.map(p=><button className="admin-page-card admin-page-card-clean" key={p.key} onClick={()=>setSelectedPage(p.key)}>
             <div><strong>{p.label}</strong><span>{p.description}</span></div><ChevronRight size={18}/>
           </button>)}
@@ -446,7 +446,7 @@ export function AdminClient({
             <button className="admin-back" onClick={()=>setSelectedPage(null)}><ChevronLeft size={18}/>Páginas</button>
             <a className="admin-page-preview" href={currentPage.key==="home"?"/":currentPage.key==="about"?"/sobre":currentPage.key==="submit"?"/enviar-testemunho":"/"+currentPage.key} target="_blank" rel="noreferrer"><ExternalLink size={15}/>Ver página</a>
           </div>
-          <div className="admin-section-intro compact"><span className="eyebrow">Edição da página</span><h2>{currentPage.label}</h2><p>Abra uma seção por vez, edite o conteúdo e salve. Configurações técnicas ficam recolhidas.</p></div>
+          <div className="admin-editor-context"><span className="eyebrow">Edição da página</span><p>Abra uma seção por vez, altere somente o que precisa e salve.</p></div>
           <div className="admin-editor-stack">
             {pageSections.map(sec=><SectionEditor key={sec.id} section={sec} title={sectionNames[sec.section_key]||sec.title} onSave={saveSection} notify={notify}/>)}
             {currentPage.special==="story"&&<div className="admin-subsection-group"><div className="admin-subsection-title"><div><strong>História em capítulos</strong><span>Linha do tempo da página Sobre</span></div></div>{story.map(ch=><StoryEditor key={ch.id} chapter={ch} onSave={saveStory} onDelete={deleteStory} notify={notify}/>)}</div>}
@@ -487,13 +487,14 @@ export function AdminClient({
       </section>}
     </div>
 
-    <nav className="admin-bottom-nav" aria-label="Navegação administrativa">
+    {!selectedEventId&&!selectedTestimonialId&&!selectedPage&&<><nav className="admin-bottom-nav" aria-label="Navegação administrativa">
       <button className={tab==="dashboard"?"active":""} onClick={()=>goTab("dashboard")}><LayoutDashboard size={20}/><span>Início</span></button>
       <button className={tab==="events"?"active":""} onClick={()=>goTab("events")}><CalendarDays size={20}/><span>Eventos</span></button>
       <button className={tab==="testimonials"?"active":""} onClick={()=>{goTab("testimonials");setSelectedTestimonialId(null)}}><MessageSquareQuote size={20}/><span>Testemunhos</span></button>
       <button className={tab==="gallery"?"active":""} onClick={()=>goTab("gallery")}><Images size={20}/><span>Galeria</span></button>
       <button className={tab==="pages"?"active":""} onClick={()=>goTab("pages")}><PanelsTopLeft size={20}/><span>Páginas</span></button>
-    </nav>
+    </nav></>}
+
   </main>
 }
 
@@ -634,8 +635,8 @@ function EventWizard({
   const completed=state.wizard_completed||{};
 
   const steps=[
-    ["Identidade","identity"],["Data e local","datetime_location"],["Público e entrada","audience_admission"],["Participações","participants"],
-    ["Programação","schedule"],["Conteúdo","content"],["Extras","extras"],["Revisão","review"]
+    ["Apresentação","identity"],["Data e local","datetime_location"],["Entrada","audience_admission"],["Participações","participants"],
+    ["Programação","schedule"],["Texto da página","content"],["Complementos","extras"],["Publicar","review"]
   ] as const;
 
   async function uploadCover(file:File){
@@ -706,7 +707,7 @@ function EventWizard({
     </div>
 
     <div className="event-wizard-heading">
-      <div><span className="eyebrow">Cadastro por etapas</span><h2>{state.title||"Novo evento"}</h2><p>Cada etapa é gravada no banco antes de você avançar. Participações, programação e FAQ são salvos individualmente no momento em que você adiciona.</p></div>
+      <div><span className="eyebrow">Publicação do evento</span><h2>{state.title||"Novo evento"}</h2><p>Complete o necessário. Você pode voltar a qualquer etapa antes de publicar.</p></div>
       <a className="admin-preview-button" href={"/eventos/"+state.slug} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span>Prévia</span></a>
     </div>
 
