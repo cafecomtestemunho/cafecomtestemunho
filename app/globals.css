@@ -5039,3 +5039,29 @@
     font-size:1.42rem!important;
   }
 }
+
+
+/* TESTEMUNHOS — fix animated word clipping and exact divider seam */
+.testimonials-founder-section{
+  background:#fbf4ec!important;
+}
+.testimonials-hero-cycle-only .testimony-word-window{
+  width:100%!important;
+  min-width:0!important;
+  height:clamp(3.35rem,13vw,4.7rem)!important;
+  min-height:clamp(3.35rem,13vw,4.7rem)!important;
+  overflow:hidden!important;
+  display:grid!important;
+  place-items:center!important;
+}
+.testimonials-hero-cycle-only .testimony-word-current{
+  display:block!important;
+  line-height:1.14!important;
+  padding:.05em 0 .16em!important;
+}
+@media(max-width:480px){
+  .testimonials-hero-cycle-only .testimony-word-window{
+    height:3.65rem!important;
+    min-height:3.65rem!important;
+  }
+}
