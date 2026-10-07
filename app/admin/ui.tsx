@@ -967,13 +967,13 @@ function PhotoEditor({photo,albums,onSave,onDelete}:{photo:AnyRow;albums:AnyRow[
       <img src={state.url} alt={state.alt_text||""}/>
       <span className="admin-photo-status">{visible?"Publicada":"Oculta"}{state.featured?" · Destaque":""}</span>
     </summary>
-    <figcaption>
+    <div className="admin-photo-edit-body">
       <Field label="Descrição"><input value={state.alt_text||""} onChange={e=>set("alt_text",e.target.value)}/></Field>
       <Field label="Álbum"><select value={state.album_id||""} onChange={e=>set("album_id",e.target.value||null)}><option value="">Galeria geral</option>{albums.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></Field>
       <label className="admin-check"><input type="checkbox" checked={state.featured===true} onChange={e=>set("featured",e.target.checked)}/>Destacar na página inicial</label>
       <label className="admin-check"><input type="checkbox" checked={visible} onChange={e=>set("is_private",!e.target.checked)}/>Exibir no site</label>
       <div className="admin-record-actions compact"><button className="admin-save-button" onClick={()=>onSave(photo.id,{alt_text:state.alt_text||null,album_id:state.album_id||null,featured:state.featured===true,is_private:state.is_private===true,sort_order:Number(state.sort_order)||0})}><Save size={16}/>Salvar</button><button className="admin-remove-button" onClick={()=>onDelete(photo.id)}><Trash2 size={16}/>Excluir</button></div>
-    </figcaption>
+    </div>
   </details>;
 }
 
