@@ -7,7 +7,7 @@ import{prepareImageForUpload}from"@/lib/client-image";
 import{
   PanelsTopLeft,CalendarDays,Settings2,ChevronLeft,ChevronRight,
   Image as ImageIcon,Upload,Save,Plus,BookHeart,Instagram,MessageSquareQuote,
-  Images,LogOut,ExternalLink,LayoutDashboard,UsersRound,Clock3,Ticket,Trash2
+  Images,LogOut,ExternalLink,LayoutDashboard,UsersRound,Clock3,Ticket,Trash2,Download,ClipboardCheck
 }from"lucide-react";
 
 type AnyRow=Record<string,any>;
@@ -35,11 +35,11 @@ const sectionNames:Record<string,string>={
 };
 
 export function AdminClient({
-  userId,userEmail,roles,initialEvents,initialEventGuests,initialEventSchedule,initialEventFaqs,initialTestimonials,initialPublications,initialSections,initialStory,
+  userId,userEmail,roles,initialEvents,initialEventGuests,initialEventSchedule,initialEventFaqs,initialEventRsvps,initialTestimonials,initialPublications,initialSections,initialStory,
   initialScriptures,initialInstagram,initialPhotos,initialAlbums,initialSocial,initialSettings,initialPhotoCount,initialPublicPhotoCount
 }:{
   userId:string;userEmail:string;roles:string[];
-  initialEvents:AnyRow[];initialEventGuests:AnyRow[];initialEventSchedule:AnyRow[];initialEventFaqs:AnyRow[];
+  initialEvents:AnyRow[];initialEventGuests:AnyRow[];initialEventSchedule:AnyRow[];initialEventFaqs:AnyRow[];initialEventRsvps:AnyRow[];
   initialTestimonials:AnyRow[];initialPublications:AnyRow[];initialSections:AnyRow[];initialStory:AnyRow[];
   initialScriptures:AnyRow[];initialInstagram:AnyRow[];initialPhotos:AnyRow[];initialAlbums:AnyRow[];
   initialSocial:AnyRow[];initialSettings:AnyRow[];initialPhotoCount:number;initialPublicPhotoCount:number;
@@ -56,6 +56,7 @@ export function AdminClient({
   const[eventGuests,setEventGuests]=useState(initialEventGuests);
   const[eventSchedule,setEventSchedule]=useState(initialEventSchedule);
   const[eventFaqs,setEventFaqs]=useState(initialEventFaqs);
+  const[eventRsvps,setEventRsvps]=useState(initialEventRsvps);
   const[testimonials,setTestimonials]=useState(initialTestimonials);
   const[publications,setPublications]=useState(initialPublications);
   const[sections,setSections]=useState(initialSections);
@@ -107,6 +108,7 @@ export function AdminClient({
     setEventGuests(current=>current.filter(x=>x.event_id!==id));
     setEventSchedule(current=>current.filter(x=>x.event_id!==id));
     setEventFaqs(current=>current.filter(x=>x.event_id!==id));
+    setEventRsvps(current=>current.filter(x=>x.event_id!==id));
     setSelectedEventId(null);await audit("EVENT_DELETED","event",id);notify("Evento removido.");
   }
   async function addEventGuest(eventId:string,payload:AnyRow){
@@ -363,7 +365,7 @@ export function AdminClient({
             <button className={eventView==="closed"?"active":""} onClick={()=>setEventView("closed")}>Encerrados</button>
           </div>
           <div className="event-admin-list">{filteredEvents.map(e=><button key={e.id} className="event-admin-row" onClick={()=>setSelectedEventId(e.id)}>
-            <div className="event-admin-row-main"><span className={"event-status-dot "+String(e.status).toLowerCase()}/><div><strong>{e.title}</strong><span>{e.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(e.starts_at)):"Data ainda não definida"} · {e.status==="RASCUNHO"?"Rascunho":e.status==="PUBLICADO"?"Publicado":"Encerrado"}</span></div></div>
+            <div className="event-admin-row-main"><span className={"event-status-dot "+String(e.status).toLowerCase()}/><div><strong>{e.title}</strong><span>{e.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(e.starts_at)):"Data ainda não definida"} · {e.status==="RASCUNHO"?"Rascunho":e.status==="PUBLICADO"?"Publicado":"Encerrado"}{e.rsvp_enabled?" · "+eventRsvps.filter(r=>r.event_id===e.id).length+" confirmações":""}</span></div></div>
             <div className="event-progress-mini"><span style={{width:Math.max(8,Math.min(100,Number(e.wizard_step||1)/8*100))+"%"}}/></div>
             <ChevronRight size={18}/>
           </button>)}
@@ -375,6 +377,7 @@ export function AdminClient({
           return <EventWizard
             event={e} onBack={()=>setSelectedEventId(null)} onSave={saveEvent} notify={notify}
             guests={eventGuests.filter(x=>x.event_id===e.id)} schedule={eventSchedule.filter(x=>x.event_id===e.id)} faqs={eventFaqs.filter(x=>x.event_id===e.id)}
+            rsvps={eventRsvps.filter(x=>x.event_id===e.id)}
             onAddGuest={addEventGuest} onUpdateGuest={updateEventGuest} onDeleteGuest={deleteEventGuest}
             onAddSchedule={addScheduleItem} onUpdateSchedule={updateScheduleItem} onDeleteSchedule={deleteScheduleItem}
             onAddFaq={addEventFaq} onUpdateFaq={updateEventFaq} onDeleteFaq={deleteEventFaq} onDeleteEvent={deleteEvent}
@@ -654,12 +657,12 @@ function StoryEditor({chapter,onSave,onDelete,notify}:{chapter:AnyRow;onSave:(id
 }
 
 function EventWizard({
-  event,onBack,onSave,notify,guests,schedule,faqs,
+  event,onBack,onSave,notify,guests,schedule,faqs,rsvps,
   onAddGuest,onUpdateGuest,onDeleteGuest,onAddSchedule,onUpdateSchedule,onDeleteSchedule,onAddFaq,onUpdateFaq,onDeleteFaq,onDeleteEvent
 }:{
   event:AnyRow;onBack:()=>void;
   onSave:(id:string,patch:AnyRow)=>Promise<AnyRow|null>;notify:(m:string)=>void;
-  guests:AnyRow[];schedule:AnyRow[];faqs:AnyRow[];
+  guests:AnyRow[];schedule:AnyRow[];faqs:AnyRow[];rsvps:AnyRow[];
   onAddGuest:(eventId:string,payload:AnyRow)=>void;onUpdateGuest:(id:string,patch:AnyRow)=>void;onDeleteGuest:(id:string)=>void;
   onAddSchedule:(eventId:string,payload:AnyRow)=>void;onUpdateSchedule:(id:string,patch:AnyRow)=>void;onDeleteSchedule:(id:string)=>void;
   onAddFaq:(eventId:string,payload:AnyRow)=>void;onUpdateFaq:(id:string,patch:AnyRow)=>void;onDeleteFaq:(id:string)=>void;onDeleteEvent:(id:string)=>void;
@@ -668,6 +671,7 @@ function EventWizard({
   const initialStep=Math.max(1,Math.min(8,Number(event.wizard_step||1)));
   const[step,setStep]=useState(initialStep);
   const[saving,setSaving]=useState(false);
+  const[view,setView]=useState<"editor"|"rsvps">("editor");
   const wizardAnchorRef=useRef<HTMLDivElement>(null);
   const set=(key:string,value:any)=>setState((v:AnyRow)=>({...v,[key]:value}));
   const focusCurrentStep=()=>window.setTimeout(()=>wizardAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),60);
@@ -706,7 +710,7 @@ function EventWizard({
     const common={wizard_completed:{...completed,[steps[step-1][1]]:true}};
     if(step===1)return{...common,title:state.title,event_theme:state.event_theme||null,summary:state.summary||null,cover_url:state.cover_url||null};
     if(step===2)return{...common,starts_at:state.starts_at||null,venue:state.venue||null,address:state.address||null,city:state.city||null,reference:state.reference||null};
-    if(step===3)return{...common,audience:state.audience||null,age_range:state.age_range||null,admission_type:admission,admission_label:state.admission_label||null,admission_amount:state.admission_amount===""||state.admission_amount==null?null:Number(String(state.admission_amount).replace(",",".")),donation_item:state.donation_item||null,registration_required:admission==="REGISTRATION"?state.registration_required!==false:false,registration_url:state.registration_url||null,entry_info:state.entry_info||null};
+    if(step===3)return{...common,audience:state.audience||null,age_range:state.age_range||null,admission_type:admission,admission_label:state.admission_label||null,admission_amount:state.admission_amount===""||state.admission_amount==null?null:Number(String(state.admission_amount).replace(",",".")),donation_item:state.donation_item||null,registration_required:admission==="REGISTRATION"?state.registration_required!==false:false,registration_url:state.registration_url||null,entry_info:state.entry_info||null,rsvp_enabled:state.rsvp_enabled===true};
     if(step===6)return{...common,description:state.description||null,verse_reference:state.verse_reference||null,verse_text:state.verse_text||null};
     if(step===7)return{...common,ends_at:state.ends_at||null,map_url:state.map_url||null,slug:state.slug||event.slug};
     return common;
@@ -742,6 +746,22 @@ function EventWizard({
   }
   async function jumpTo(target:number){await saveAndGo(target)}
 
+  if(view==="rsvps")return <div className="event-wizard">
+    <div className="event-wizard-top">
+      <button className="admin-back" onClick={onBack}><ChevronLeft size={18}/>Eventos</button>
+      <span className={"event-editor-status "+String(state.status||"RASCUNHO").toLowerCase()}>{state.status==="PUBLICADO"?"Publicado":state.status==="ENCERRADO"?"Encerrado":"Rascunho"}</span>
+    </div>
+    <div className="event-wizard-heading">
+      <div><span className="eyebrow">Evento</span><h2>{state.title||"Novo evento"}</h2><p>Gerencie os dados do encontro e acompanhe as confirmações recebidas.</p></div>
+      <a className="admin-preview-button" href={"/eventos/"+state.slug} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span>Prévia</span></a>
+    </div>
+    <div className="event-admin-modes">
+      <button type="button" onClick={()=>setView("editor")}>Editar evento</button>
+      <button type="button" className="active" onClick={()=>setView("rsvps")}><ClipboardCheck size={16}/>Confirmações <b>{rsvps.length}</b></button>
+    </div>
+    <EventRsvpAdmin event={state} rsvps={rsvps}/>
+  </div>;
+
   return <div className="event-wizard">
     <div className="event-wizard-top">
       <button className="admin-back" onClick={onBack}><ChevronLeft size={18}/>Eventos</button>
@@ -751,6 +771,11 @@ function EventWizard({
     <div className="event-wizard-heading">
       <div><span className="eyebrow">Publicação do evento</span><h2>{state.title||"Novo evento"}</h2><p>Complete o necessário. Você pode voltar a qualquer etapa antes de publicar.</p></div>
       <a className="admin-preview-button" href={"/eventos/"+state.slug} target="_blank" rel="noreferrer"><ExternalLink size={17}/><span>Prévia</span></a>
+    </div>
+
+    <div className="event-admin-modes">
+      <button type="button" className="active" onClick={()=>setView("editor")}>Editar evento</button>
+      <button type="button" onClick={()=>setView("rsvps")}><ClipboardCheck size={16}/>Confirmações <b>{rsvps.length}</b></button>
     </div>
 
     <div className="event-wizard-anchor" ref={wizardAnchorRef}>
@@ -785,6 +810,12 @@ function EventWizard({
         {admission==="PAID"&&<div className="admin-two-col"><Field label="Valor (R$)"><input inputMode="decimal" value={state.admission_amount??""} onChange={e=>set("admission_amount",e.target.value)} placeholder="0,00"/></Field><Field label="Como exibir"><input value={state.admission_label||""} onChange={e=>set("admission_label",e.target.value)} placeholder="Ex.: Ingresso antecipado"/></Field></div>}
         {admission==="REGISTRATION"&&<><Field label="Link da inscrição"><input type="url" value={state.registration_url||""} onChange={e=>set("registration_url",e.target.value)}/></Field><label className="admin-check"><input type="checkbox" checked={state.registration_required!==false} onChange={e=>set("registration_required",e.target.checked)}/>Inscrição obrigatória</label></>}
         <Field label="Orientação sobre a entrada"><textarea value={state.entry_info||""} onChange={e=>set("entry_info",e.target.value)} placeholder="Ex.: Entregue a doação na recepção."/></Field>
+        <div className="event-rsvp-toggle-card">
+          <label className="admin-check event-rsvp-toggle">
+            <input type="checkbox" checked={state.rsvp_enabled===true} onChange={e=>set("rsvp_enabled",e.target.checked)}/>
+            <div><strong>Ativar confirmação de presença</strong><span>Adiciona na página pública um formulário simples com nome completo e cidade.</span></div>
+          </label>
+        </div>
       </>}
 
       {step===4&&<>
@@ -829,6 +860,7 @@ function EventWizard({
           <ReviewItem label="Data" value={state.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"long",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(state.starts_at)):"Não informada"}/>
           <ReviewItem label="Local" value={[state.venue,state.city].filter(Boolean).join(" · ")||"Não informado"}/>
           <ReviewItem label="Entrada" value={admission==="DONATION"?(state.donation_item||"Doação"):admission==="PAID"?(state.admission_label||("R$ "+state.admission_amount)):admission==="REGISTRATION"?"Inscrição obrigatória":"Gratuita"}/>
+          <ReviewItem label="Confirmação de presença" value={state.rsvp_enabled?"Ativada":"Desativada"}/>
           <ReviewItem label="Participações" value={guests.length?guests.map(g=>g.name+" — "+g.role_label).join(" · "):"Nenhuma cadastrada"}/>
           <ReviewItem label="Programação" value={schedule.length?schedule.length+" itens cadastrados":"Ainda não definida"}/>
           <ReviewItem label="Capa" value={state.cover_url?"Cadastrada":"Ainda não cadastrada"}/>
@@ -848,6 +880,21 @@ function EventWizard({
       <button className="wizard-save-button" disabled={saving} onClick={()=>saveAndGo(step+1)}>{saving?"Salvando...":"Salvar e continuar"}<ChevronRight size={18}/></button>
     </div>}
   </div>
+}
+
+function EventRsvpAdmin({event,rsvps}:{event:AnyRow;rsvps:AnyRow[]}){
+  const sorted=[...rsvps].sort((a,b)=>String(a.full_name||"").localeCompare(String(b.full_name||""),"pt-BR"));
+  return <section className="event-rsvp-admin-screen">
+    <div className="event-rsvp-admin-summary">
+      <div><span>Confirmações recebidas</span><strong>{rsvps.length}</strong><small>{event.rsvp_enabled?"Formulário ativo na página pública.":"Formulário desativado neste evento."}</small></div>
+      <a className={"event-rsvp-pdf-button "+(!rsvps.length?"disabled":"")} href={rsvps.length?"/api/admin/events/"+event.id+"/rsvps/pdf":undefined} aria-disabled={!rsvps.length}><Download size={17}/>Baixar lista PDF</a>
+    </div>
+    {!event.rsvp_enabled&&<div className="wizard-empty-note">A confirmação de presença está desativada. Ative em Público e entrada para receber novas confirmações.</div>}
+    {sorted.length?<div className="event-rsvp-admin-list">{sorted.map((item,index)=><article key={item.id} className="event-rsvp-admin-row">
+      <span className="event-rsvp-number">{String(index+1).padStart(2,"0")}</span>
+      <div><strong>{item.full_name}</strong><span>{item.city}</span><small>{new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(item.created_at))}</small></div>
+    </article>)}</div>:<div className="admin-empty">Ainda não há confirmações para este evento.</div>}
+  </section>;
 }
 
 function WizardHeading({icon,title,text}:{icon:React.ReactNode;title:string;text:string}){return <div className="wizard-heading">{icon}<div><h3>{title}</h3><p>{text}</p></div></div>}

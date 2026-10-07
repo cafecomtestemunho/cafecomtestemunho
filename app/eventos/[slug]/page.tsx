@@ -4,6 +4,7 @@ import{CalendarDays,Clock3,MapPin,Ticket,UsersRound,ExternalLink,BookOpen}from"l
 import{createServerSupabaseClient}from"@/lib/supabase/server";
 import{Reveal}from"@/components/reveal";
 import{EventShareButton}from"@/components/event-share-button";
+import{EventRsvpForm}from"@/components/event-rsvp-form";
 
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
   const{slug}=await params;
@@ -77,6 +78,8 @@ export default async function EventoPage({params}:{params:Promise<{slug:string}>
           {event.description&&<p>{event.description}</p>}
           <div className="event-info-chips">{event.audience&&<span><strong>Público</strong>{event.audience}</span>}{event.age_range&&<span><strong>Faixa etária</strong>{event.age_range}</span>}</div>
         </article></Reveal>}
+
+        {event.rsvp_enabled&&<Reveal><EventRsvpForm eventId={event.id} eventTitle={event.title}/></Reveal>}
 
         {guests?.length?<Reveal><section className="event-public-card">
           <div className="event-card-heading"><UsersRound size={20}/><div><h2>Quem estará com a gente</h2><p>Ministração, pregação, louvor e participações deste encontro.</p></div></div>

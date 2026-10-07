@@ -6167,3 +6167,55 @@
 
 .admin-upload-label.is-busy{opacity:.72;cursor:progress}
 .admin-upload-error{display:block;margin-top:7px;color:#8f2f24;font-size:.72rem;font-weight:700;line-height:1.35}
+
+
+/* Event RSVP */
+.event-rsvp-card{display:grid;gap:20px}
+.event-rsvp-heading>span{display:block;font-size:.72rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#9a6c43;margin-bottom:7px}
+.event-rsvp-heading h2{margin:0 0 7px;font-size:1.45rem;color:#422515}
+.event-rsvp-heading p{margin:0;color:#78685d;line-height:1.55}
+.event-rsvp-form{display:grid;gap:13px}
+.event-rsvp-form label{display:grid;gap:6px}
+.event-rsvp-form label>span{font-size:.76rem;font-weight:850;color:#5e4030}
+.event-rsvp-form input{width:100%;min-height:50px;border:1px solid #ddcdbd;border-radius:13px;background:#fff;padding:0 14px;font:inherit;color:#3d2a20;outline:none}
+.event-rsvp-form input:focus{border-color:#a9794b;box-shadow:0 0 0 3px rgba(169,121,75,.12)}
+.event-rsvp-form button{min-height:50px;border:0;border-radius:13px;background:#43210f;color:#fff;font-weight:900;font-size:.9rem;padding:0 18px}
+.event-rsvp-form button:disabled{opacity:.65}
+.event-rsvp-error{margin:0;color:#9b3026;font-size:.78rem;font-weight:700}
+.event-rsvp-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+.event-rsvp-success{grid-template-columns:auto 1fr;align-items:start;background:#faf5ee}
+.event-rsvp-success svg{color:#7c5a35;margin-top:2px}
+.event-rsvp-success span{display:block;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#8b633e}
+.event-rsvp-success h2{margin:4px 0 5px;color:#422515}
+.event-rsvp-success p{margin:0;color:#78685d}
+
+.event-rsvp-toggle-card{margin-top:8px;padding:13px;border:1px solid #e2d2c0;border-radius:14px;background:#fbf5ee}
+.event-rsvp-toggle{align-items:flex-start!important}
+.event-rsvp-toggle div{display:grid;gap:3px}
+.event-rsvp-toggle strong{font-size:.86rem;color:#472b1d}
+.event-rsvp-toggle span{font-size:.72rem;color:#7f6b5d;line-height:1.45}
+.event-admin-modes{display:flex;gap:7px;margin:2px 0 16px;overflow:auto}
+.event-admin-modes button{border:1px solid #dbc8b4;background:#fff8f1;color:#6f5442;border-radius:999px;min-height:38px;padding:0 13px;display:inline-flex;align-items:center;gap:6px;font-weight:850;white-space:nowrap}
+.event-admin-modes button.active{background:#43210f;border-color:#43210f;color:#fff}
+.event-admin-modes b{min-width:21px;height:21px;padding:0 5px;border-radius:999px;display:inline-grid;place-items:center;background:rgba(255,255,255,.18);font-size:.68rem}
+.event-rsvp-admin-screen{display:grid;gap:15px}
+.event-rsvp-admin-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px;border:1px solid #e1d2c4;border-radius:16px;background:#fffaf5}
+.event-rsvp-admin-summary>div{display:grid;gap:2px}
+.event-rsvp-admin-summary span{font-size:.72rem;color:#806c5d;font-weight:800}
+.event-rsvp-admin-summary strong{font-size:2rem;line-height:1;color:#43210f}
+.event-rsvp-admin-summary small{font-size:.68rem;color:#8a7668}
+.event-rsvp-pdf-button{min-height:42px;padding:0 13px;border-radius:11px;background:#43210f;color:#fff!important;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-size:.76rem;font-weight:900}
+.event-rsvp-pdf-button.disabled{opacity:.45;pointer-events:none}
+.event-rsvp-admin-list{display:grid;gap:8px}
+.event-rsvp-admin-row{display:grid;grid-template-columns:auto 1fr;gap:11px;align-items:center;padding:12px 13px;border:1px solid #eadfd4;border-radius:13px;background:#fff}
+.event-rsvp-number{width:31px;height:31px;border-radius:9px;background:#f2e4d4;display:grid;place-items:center;color:#755238;font-size:.68rem;font-weight:900}
+.event-rsvp-admin-row>div{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:2px;min-width:0}
+.event-rsvp-admin-row strong{font-size:.84rem;color:#422515;overflow:hidden;text-overflow:ellipsis}
+.event-rsvp-admin-row span{font-size:.74rem;color:#6f5a4c;text-align:right}
+.event-rsvp-admin-row small{grid-column:1/-1;color:#9a887b;font-size:.65rem}
+@media(max-width:620px){
+  .event-rsvp-admin-summary{align-items:stretch;flex-direction:column}
+  .event-rsvp-pdf-button{width:100%}
+  .event-rsvp-admin-row>div{grid-template-columns:1fr}
+  .event-rsvp-admin-row span{text-align:left}
+}
