@@ -14,8 +14,8 @@ export function TestimonyWordCycle(){
     return()=>window.clearInterval(timer);
   },[]);
 
-  return <div className="testimony-word-cycle" aria-label={"Há histórias de "+WORDS[index]}>
-    <span className="testimony-word-prefix">Há histórias de</span>
+  return <div className="testimony-word-cycle" aria-label={"Há testemunhos de "+WORDS[index]}>
+    <span className="testimony-word-prefix">Há testemunhos de</span>
     <span className="testimony-word-window" aria-hidden="true">
       <span key={WORDS[index]} className="testimony-word-current">{WORDS[index]}</span>
     </span>
