@@ -68,14 +68,28 @@ export default async function SobrePage(){
       </div>
     </section>}
 
-    {testimonySection?.visible!==false&&<section className="inner-founder">
-      <div className="container inner-narrow"><Reveal className="inner-founder-panel">
-        <BookHeart size={25}/>
-        <div className="inner-kicker">{testimonySection?.subtitle||"Testemunho fundador"}</div>
-        <h2>{testimonySection?.title||founder?.public_title||"Leia o relato completo de Kathia Andreia"}</h2>
-        <p>{testimonySection?.body||founder?.public_excerpt||"A narrativa desta página nasceu do testemunho que deu origem ao projeto. O relato completo está preservado na área de testemunhos."}</p>
-        <Link href={founder?"/testemunhos/"+founder.slug:"/testemunhos"}>Ler testemunho completo <ArrowRight size={16}/></Link>
-      </Reveal></div>
+    {testimonySection?.visible!==false&&<section className="inner-founder founder-editorial">
+      <div className="container inner-narrow">
+        <Reveal className="founder-editorial-card">
+          <div className="founder-editorial-mark" aria-hidden="true">
+            <BookHeart size={22}/>
+            <span>01</span>
+          </div>
+          <div className="founder-editorial-copy">
+            <div className="inner-kicker">{testimonySection?.subtitle||"Testemunho fundador"}</div>
+            <h2>{testimonySection?.title||founder?.public_title||"Leia o relato completo de Kathia Andreia"}</h2>
+            <div className="founder-editorial-rule" aria-hidden="true"/>
+            <p>{testimonySection?.body||founder?.public_excerpt||"A narrativa desta página nasceu do testemunho que deu origem ao projeto. O relato completo está preservado na área de testemunhos."}</p>
+            {founder?.public_display_name&&<small>{founder.public_display_name}</small>}
+            <Link className="founder-editorial-link" href={founder?"/testemunhos/"+founder.slug:"/testemunhos"}>
+              <span>Ler testemunho completo</span>
+              <span className="founder-editorial-arrow"><ArrowRight size={16}/></span>
+            </Link>
+          </div>
+          <div className="founder-editorial-quote" aria-hidden="true">“</div>
+          <div className="founder-editorial-botanical" aria-hidden="true"/>
+        </Reveal>
+      </div>
     </section>}
 
     {cta?.visible!==false&&<section className="inner-closing">
