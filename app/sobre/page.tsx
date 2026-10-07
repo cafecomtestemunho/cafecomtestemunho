@@ -6,21 +6,22 @@ import{AboutScripture}from"@/components/about-scripture";
 
 export const metadata={title:"Sobre"};
 
-function AboutDivider({tone,floral=false}:{tone:"light-dark"|"dark-light";floral?:boolean}){
-  return <div className={"about-wave about-wave-"+tone+(floral?" about-wave-floral":"")} aria-hidden="true">
-    <svg className="about-wave-svg" viewBox="0 0 1200 110" preserveAspectRatio="none">
-      {tone==="dark-light"?<>
-        <path className="about-wave-fill" d="M0 0H1200V29C1015 56 865 62 700 43C505 21 330 17 0 59Z"/>
-        <path className="about-wave-line" d="M0 55C240 17 430 19 690 43C875 60 1030 54 1200 29"/>
+function AboutDivider({tone}:{tone:"light-dark"|"dark-light"}){
+  const lightDark=tone==="light-dark";
+  return <div className={"about-wave about-wave-"+tone} aria-hidden="true">
+    <svg className="about-wave-svg" viewBox="0 0 1200 96" preserveAspectRatio="none">
+      {lightDark?<>
+        <path className="about-wave-ribbon" d="M0 0H1200V66C1005 37 842 34 655 55C449 78 267 81 0 47Z"/>
+        <path className="about-wave-fill" d="M0 0H1200V58C1005 30 842 27 655 48C449 71 267 74 0 40Z"/>
+        <path className="about-wave-gold-glow" d="M0 40C250 73 447 72 655 48C846 26 1018 31 1200 58"/>
+        <path className="about-wave-gold-line" d="M0 40C250 73 447 72 655 48C846 26 1018 31 1200 58"/>
       </>:<>
-        <path className="about-wave-fill" d="M0 0H1200V58C990 26 835 23 657 45C455 70 274 71 0 36Z"/>
-        <path className="about-wave-line" d="M0 36C250 70 447 70 655 45C845 22 1014 28 1200 58"/>
+        <path className="about-wave-ribbon" d="M0 0H1200V39C1008 69 844 65 656 47C451 26 269 24 0 61Z"/>
+        <path className="about-wave-fill" d="M0 0H1200V31C1008 61 844 58 656 40C451 20 269 18 0 54Z"/>
+        <path className="about-wave-gold-glow" d="M0 54C250 18 447 19 656 40C846 59 1019 60 1200 31"/>
+        <path className="about-wave-gold-line" d="M0 54C250 18 447 19 656 40C846 59 1019 60 1200 31"/>
       </>}
     </svg>
-    {floral&&<>
-      <span className="about-wave-floral-left"/>
-      <span className="about-wave-floral-right"/>
-    </>}
   </div>;
 }
 
@@ -53,8 +54,8 @@ export default async function SobrePage(){
           <p>{mission?.body||"Cada encontro é um capítulo do projeto. As histórias compartilhadas formam uma memória viva de recomeços, aprendizados e esperança."}</p>
         </Reveal>
       </div>
-      <div className="about-hero-curve" aria-hidden="true"/>
     </section>
+    <AboutDivider tone="dark-light"/>
 
     <section className="inner-section inner-paper">
       <div className="container inner-narrow">
@@ -108,7 +109,7 @@ export default async function SobrePage(){
     </section>}
 
 
-    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark" floral/>}
+    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark"/>}
 
     {cta?.visible!==false&&<section className="inner-closing">
       <div className="container inner-narrow"><Reveal className="inner-closing-copy"><HeartHandshake size={26}/><div className="inner-kicker">Faça parte</div><h2>{cta?.title||"Essa história continua sendo escrita"}</h2><p>{cta?.body||"Cada encontro, cada mulher e cada testemunho acrescentam um novo capítulo a essa caminhada."}</p><div className="inner-actions"><Link className="inner-btn primary" href={cta?.cta_url||"/agenda"}>{cta?.cta_label||"Participar de um encontro"} <ArrowRight size={16}/></Link><Link className="inner-btn ghost" href="/enviar-testemunho">Compartilhar meu testemunho</Link></div></Reveal></div>
