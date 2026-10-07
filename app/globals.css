@@ -1435,3 +1435,316 @@
     animation:none!important;
   }
 }
+
+
+/* =========================================================
+   About reference correction — subtle transitions + founder
+   ========================================================= */
+
+/* Disable the previous oversized divider treatment */
+.about-divider{display:none!important}
+
+/* Small, soft transitions between sections */
+.about-divider-ref{
+  position:relative;
+  height:34px;
+  overflow:visible;
+  isolation:isolate;
+  pointer-events:none;
+}
+.about-divider-ref-curve{
+  position:absolute;
+  left:-3%;
+  right:-3%;
+  height:42px;
+  border-radius:50% 50% 0 0/70% 70% 0 0;
+  animation:aboutRefCurve 10s ease-in-out infinite alternate;
+}
+.about-divider-ref-branch{
+  position:absolute;
+  z-index:2;
+  width:104px;
+  height:138px;
+  background:url("/word-botanical.svg") center/contain no-repeat;
+  opacity:.055;
+  animation:aboutRefBranch 12s ease-in-out infinite alternate;
+}
+.about-divider-ref-light-dark{
+  background:#fbf2e7;
+}
+.about-divider-ref-light-dark .about-divider-ref-curve{
+  bottom:-24px;
+  background:#2c160b;
+}
+.about-divider-ref-light-dark .about-divider-ref-branch{
+  right:-34px;
+  top:-50px;
+  transform:rotate(10deg);
+}
+.about-divider-ref-dark-light{
+  background:#2c160b;
+}
+.about-divider-ref-dark-light .about-divider-ref-curve{
+  bottom:-24px;
+  background:#f3e3d2;
+}
+.about-divider-ref-dark-light .about-divider-ref-branch{
+  left:-38px;
+  top:-48px;
+  transform:rotate(190deg);
+}
+.about-divider-ref-light-light{
+  height:26px;
+  background:linear-gradient(180deg,#f3e3d2,#f7ede2);
+}
+.about-divider-ref-light-light .about-divider-ref-curve{
+  display:none;
+}
+.about-divider-ref-light-light .about-divider-ref-branch{
+  right:-34px;
+  top:-62px;
+}
+.about-divider-ref-light-dark-final{
+  background:#f7ede2;
+}
+.about-divider-ref-light-dark-final .about-divider-ref-curve{
+  bottom:-24px;
+  background:#2c160b;
+}
+.about-divider-ref-light-dark-final .about-divider-ref-branch{
+  right:-35px;
+  top:-48px;
+  transform:rotate(8deg);
+}
+
+@keyframes aboutRefCurve{
+  0%{transform:translateX(-.8%) scaleX(1.006)}
+  100%{transform:translateX(.8%) scaleX(1.012)}
+}
+@keyframes aboutRefBranch{
+  0%{translate:0 0}
+  50%{translate:-3px 4px}
+  100%{translate:2px -2px}
+}
+
+/* Founder testimonial — warm editorial layout from approved reference */
+.founder-reference{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  padding:72px 0 78px;
+  background:
+    radial-gradient(circle at 88% 18%,rgba(199,148,100,.10),transparent 26%),
+    linear-gradient(180deg,#f7ede2 0%,#fbf4ec 100%);
+}
+.founder-reference::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-2;
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.22),transparent 35%),
+    radial-gradient(circle at 16% 90%,rgba(214,172,129,.08),transparent 24%);
+}
+.founder-reference-content{
+  position:relative;
+  z-index:2;
+  width:min(100%,590px);
+  margin:0 auto;
+  padding:10px 0;
+}
+.founder-reference-icon{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  margin-bottom:22px;
+  border:1px solid rgba(171,112,63,.34);
+  border-radius:50%;
+  color:#a96d3c;
+  background:rgba(255,250,245,.56);
+}
+.founder-reference-content .inner-kicker{
+  color:#a96f3e;
+  margin-bottom:12px;
+}
+.founder-reference-content h2{
+  max-width:540px;
+  margin:0;
+  color:#3b1f0d;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(2rem,4vw,2.85rem);
+  font-weight:400;
+  line-height:1.04;
+  letter-spacing:-.025em;
+  text-wrap:balance;
+}
+.founder-reference-accent{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:108px;
+  margin:22px 0 20px;
+  opacity:.76;
+}
+.founder-reference-accent span{
+  height:1px;
+  flex:1;
+  background:linear-gradient(90deg,#bd8757,transparent);
+}
+.founder-reference-accent span:last-child{
+  background:linear-gradient(90deg,transparent,#bd8757);
+}
+.founder-reference-accent i{
+  width:7px;
+  height:7px;
+  border:1px solid #bd8757;
+  transform:rotate(45deg);
+  animation:founderRefPulse 4.5s ease-in-out infinite;
+}
+.founder-reference-content p{
+  max-width:520px;
+  margin:0;
+  color:#6d5a4c;
+  font-size:.95rem;
+  line-height:1.72;
+}
+.founder-reference-content small{
+  display:block;
+  margin-top:17px;
+  color:#9b7355;
+  font-size:.72rem;
+  letter-spacing:.045em;
+}
+.founder-reference-link{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:25px;
+  padding:11px 17px;
+  border-radius:999px;
+  background:#3b1f0d;
+  color:#fff8ef;
+  font-size:.78rem;
+  font-weight:850;
+  box-shadow:0 10px 24px rgba(59,31,13,.12);
+  transition:transform .25s ease,box-shadow .25s ease;
+}
+.founder-reference-link:hover{
+  transform:translateY(-2px);
+  box-shadow:0 14px 28px rgba(59,31,13,.16);
+}
+.founder-reference-branch{
+  position:absolute;
+  z-index:0;
+  background:url("/word-botanical.svg") center/contain no-repeat;
+  pointer-events:none;
+}
+.founder-reference-branch-a{
+  width:250px;
+  height:360px;
+  right:-98px;
+  top:-56px;
+  opacity:.09;
+  transform:rotate(8deg);
+  animation:founderBranchA 14s ease-in-out infinite alternate;
+}
+.founder-reference-branch-b{
+  width:190px;
+  height:275px;
+  left:-88px;
+  bottom:-105px;
+  opacity:.045;
+  transform:rotate(188deg);
+  animation:founderBranchB 16s ease-in-out infinite alternate;
+}
+
+@keyframes founderRefPulse{
+  0%,100%{transform:rotate(45deg) scale(.82);opacity:.55}
+  50%{transform:rotate(45deg) scale(1.08);opacity:1}
+}
+@keyframes founderBranchA{
+  0%{translate:0 0;rotate:8deg}
+  100%{translate:-8px 8px;rotate:12deg}
+}
+@keyframes founderBranchB{
+  0%{translate:0 0;rotate:188deg}
+  100%{translate:8px -6px;rotate:183deg}
+}
+
+/* Avoid old founder card treatment influencing the new section */
+.founder-editorial{display:none!important}
+
+@media(max-width:820px){
+  .about-divider-ref{height:28px}
+  .about-divider-ref-light-light{height:22px}
+  .about-divider-ref-curve{height:36px}
+  .founder-reference{
+    padding:62px 0 68px;
+  }
+  .founder-reference-content{
+    width:min(100%,470px);
+  }
+  .founder-reference-branch-a{
+    width:190px;
+    height:280px;
+    right:-92px;
+    top:-46px;
+    opacity:.075;
+  }
+}
+@media(max-width:420px){
+  .about-divider-ref{height:24px}
+  .about-divider-ref-light-light{height:18px}
+  .about-divider-ref-curve{
+    height:30px;
+    bottom:-19px!important;
+  }
+  .about-divider-ref-branch{
+    width:84px;
+    height:114px;
+    opacity:.045;
+  }
+  .founder-reference{
+    padding:54px 0 60px;
+  }
+  .founder-reference .container{
+    width:min(100% - 46px,350px);
+  }
+  .founder-reference-content{
+    width:100%;
+    padding:4px 0;
+  }
+  .founder-reference-icon{
+    width:34px;
+    height:34px;
+    margin-bottom:18px;
+  }
+  .founder-reference-content h2{
+    font-size:2rem;
+    line-height:1.06;
+  }
+  .founder-reference-content p{
+    font-size:.9rem;
+    line-height:1.64;
+  }
+  .founder-reference-link{
+    margin-top:22px;
+    min-height:42px;
+  }
+  .founder-reference-branch-a{
+    width:150px;
+    height:220px;
+    right:-82px;
+    top:-34px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .about-divider-ref-curve,
+  .about-divider-ref-branch,
+  .founder-reference-accent i,
+  .founder-reference-branch-a,
+  .founder-reference-branch-b{
+    animation:none!important;
+  }
+}
