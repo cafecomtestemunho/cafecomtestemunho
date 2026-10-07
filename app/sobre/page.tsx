@@ -6,15 +6,33 @@ import{AboutScripture}from"@/components/about-scripture";
 
 export const metadata={title:"Sobre"};
 
-function AboutDivider({tone}:{tone:"light-dark"|"dark-light"|"light-light"|"light-dark-final"}){
-  const floral=tone==="light-dark-final";
-  return <div className={"about-wave-divider about-wave-"+tone} aria-hidden="true">
-    {floral&&<><div className="about-wave-floral about-wave-floral-left"/><div className="about-wave-floral about-wave-floral-right"/></>}
-    <svg className="about-wave-svg" viewBox="0 0 1200 100" preserveAspectRatio="none">
-      <path className="about-wave-soft" d="M0 48 C180 16 330 72 520 50 C720 26 860 68 1200 28 L1200 100 L0 100 Z"/>
-      <path className="about-wave-main" d="M0 62 C210 28 360 82 555 58 C760 34 925 76 1200 42 L1200 100 L0 100 Z"/>
-      <path className="about-wave-line" d="M0 54 C210 22 360 76 555 52 C760 28 925 70 1200 36"/>
+function AboutDivider({tone,floral=false}:{tone:"light-dark"|"dark-light";floral?:boolean}){
+  return <div className={"about-wave-divider about-wave-"+tone+(floral?" about-wave-with-floral":"")} aria-hidden="true">
+    <svg className="about-wave-svg" viewBox="0 0 1200 76" preserveAspectRatio="none">
+      <path className="about-wave-soft" d="M0 34 C165 24 292 39 430 37 C600 35 722 17 874 23 C1008 28 1105 36 1200 29 L1200 76 L0 76 Z"/>
+      <path className="about-wave-main" d="M0 46 C170 35 300 49 445 47 C608 45 731 29 878 34 C1016 39 1113 47 1200 40 L1200 76 L0 76 Z"/>
+      <path className="about-wave-line" d="M0 39 C168 29 298 43 438 41 C604 39 727 23 876 28 C1011 33 1108 41 1200 34"/>
     </svg>
+    {floral&&<>
+      <svg className="about-wave-floral-svg about-wave-floral-left" viewBox="0 0 240 92">
+        <path d="M5 83 C39 75 61 59 86 43 C112 27 139 35 166 24 C193 13 214 7 235 5"/>
+        <path d="M67 55 C56 43 50 34 49 24 M87 43 C94 29 105 19 119 12 M126 36 C123 23 127 12 137 5 M160 26 C168 16 179 9 192 6"/>
+        <ellipse cx="49" cy="24" rx="9" ry="4" transform="rotate(34 49 24)"/>
+        <ellipse cx="87" cy="43" rx="10" ry="4" transform="rotate(-48 87 43)"/>
+        <ellipse cx="126" cy="36" rx="10" ry="4" transform="rotate(45 126 36)"/>
+        <ellipse cx="160" cy="26" rx="10" ry="4" transform="rotate(-45 160 26)"/>
+        <circle cx="203" cy="8" r="2.4"/><circle cx="211" cy="6" r="1.9"/><circle cx="218" cy="5" r="1.7"/>
+      </svg>
+      <svg className="about-wave-floral-svg about-wave-floral-right" viewBox="0 0 240 92">
+        <path d="M5 83 C39 75 61 59 86 43 C112 27 139 35 166 24 C193 13 214 7 235 5"/>
+        <path d="M67 55 C56 43 50 34 49 24 M87 43 C94 29 105 19 119 12 M126 36 C123 23 127 12 137 5 M160 26 C168 16 179 9 192 6"/>
+        <ellipse cx="49" cy="24" rx="9" ry="4" transform="rotate(34 49 24)"/>
+        <ellipse cx="87" cy="43" rx="10" ry="4" transform="rotate(-48 87 43)"/>
+        <ellipse cx="126" cy="36" rx="10" ry="4" transform="rotate(45 126 36)"/>
+        <ellipse cx="160" cy="26" rx="10" ry="4" transform="rotate(-45 160 26)"/>
+        <circle cx="203" cy="8" r="2.4"/><circle cx="211" cy="6" r="1.9"/><circle cx="218" cy="5" r="1.7"/>
+      </svg>
+    </>}
   </div>;
 }
 
@@ -74,6 +92,7 @@ export default async function SobrePage(){
 
     {wordSection?.visible!==false&&scripture&&<AboutWave direction="light-dark"/>}
     {wordSection?.visible!==false&&scripture&&<AboutScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} kicker={wordSection?.subtitle}/>} 
+    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="dark-light"/>}
 
 
     {hasPhotos&&<section className="inner-section inner-memory-section">
@@ -84,11 +103,7 @@ export default async function SobrePage(){
     </section>}
 
 
-    {hasPhotos&&<AboutDivider tone="light-light"/>}
-
     {testimonySection?.visible!==false&&<section className="founder-reference">
-      <div className="founder-reference-branch founder-reference-branch-a" aria-hidden="true"/>
-      <div className="founder-reference-branch founder-reference-branch-b" aria-hidden="true"/>
       <div className="container inner-narrow">
         <Reveal className="founder-reference-content">
           <div className="founder-reference-icon" aria-hidden="true"><BookHeart size={19}/></div>
@@ -105,7 +120,7 @@ export default async function SobrePage(){
     </section>}
 
 
-    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark-final"/>}
+    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark" floral/>}
 
     {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutWave direction="light-dark" floral/>}
 
