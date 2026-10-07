@@ -7,10 +7,9 @@ import{AboutScripture}from"@/components/about-scripture";
 export const metadata={title:"Sobre"};
 
 function AboutDivider({tone}:{tone:"light-dark"|"dark-light"|"light-light"|"light-dark-final"}){
-  return <div className={"about-divider about-divider-"+tone} aria-hidden="true">
-    <div className="about-divider-wave"/>
-    <div className="about-divider-seal"><span/><i/><span/></div>
-    <div className="about-divider-leaf"/>
+  return <div className={"about-divider-ref about-divider-ref-"+tone} aria-hidden="true">
+    <div className="about-divider-ref-curve"/>
+    <div className="about-divider-ref-branch"/>
   </div>;
 }
 
@@ -81,26 +80,20 @@ export default async function SobrePage(){
 
     {photosSection?.visible!==false&&!!photos?.length&&<AboutDivider tone="light-light"/>}
 
-    {testimonySection?.visible!==false&&<section className="inner-founder founder-editorial">
+    {testimonySection?.visible!==false&&<section className="founder-reference">
+      <div className="founder-reference-branch founder-reference-branch-a" aria-hidden="true"/>
+      <div className="founder-reference-branch founder-reference-branch-b" aria-hidden="true"/>
       <div className="container inner-narrow">
-        <Reveal className="founder-editorial-card">
-          <div className="founder-editorial-mark" aria-hidden="true">
-            <BookHeart size={22}/>
-            <span>01</span>
-          </div>
-          <div className="founder-editorial-copy">
-            <div className="inner-kicker">{testimonySection?.subtitle||"Testemunho fundador"}</div>
-            <h2>{testimonySection?.title||founder?.public_title||"Leia o relato completo de Kathia Andreia"}</h2>
-            <div className="founder-editorial-rule" aria-hidden="true"/>
-            <p>{testimonySection?.body||founder?.public_excerpt||"A narrativa desta página nasceu do testemunho que deu origem ao projeto. O relato completo está preservado na área de testemunhos."}</p>
-            {founder?.public_display_name&&<small>{founder.public_display_name}</small>}
-            <Link className="founder-editorial-link" href={founder?"/testemunhos/"+founder.slug:"/testemunhos"}>
-              <span>Ler testemunho completo</span>
-              <span className="founder-editorial-arrow"><ArrowRight size={16}/></span>
-            </Link>
-          </div>
-          <div className="founder-editorial-quote" aria-hidden="true">“</div>
-          <div className="founder-editorial-botanical" aria-hidden="true"/>
+        <Reveal className="founder-reference-content">
+          <div className="founder-reference-icon" aria-hidden="true"><BookHeart size={19}/></div>
+          <div className="inner-kicker">{testimonySection?.subtitle||"Testemunho fundador"}</div>
+          <h2>{testimonySection?.title||founder?.public_title||"Como surgiu o Café com Testemunho"}</h2>
+          <div className="founder-reference-accent" aria-hidden="true"><span/><i/><span/></div>
+          <p>{testimonySection?.body||founder?.public_excerpt||"Aquilo que começou em um dos momentos mais dolorosos da vida de Kathia Andreia foi crescendo e se tornando o Café com Testemunho."}</p>
+          {founder?.public_display_name&&<small>{founder.public_display_name}</small>}
+          <Link className="founder-reference-link" href={founder?"/testemunhos/"+founder.slug:"/testemunhos"}>
+            <span>Ler testemunho completo</span><ArrowRight size={15}/>
+          </Link>
         </Reveal>
       </div>
     </section>}
