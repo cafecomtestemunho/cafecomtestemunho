@@ -2546,22 +2546,21 @@
 }
 
 /* =========================================================
-   ABOUT — integrated gold ribbon dividers
-   The divider overlaps the previous section instead of creating
-   a separate horizontal block.
+   ABOUT — seamless gold dividers
+   Zero layout height: the SVG floats across the real section seam.
    ========================================================= */
 .about-hero-curve{
   display:none!important;
 }
 
+/* The divider no longer owns any vertical space. */
 .about-wave{
-  --about-wave-next:#fffaf4;
   position:relative!important;
-  z-index:12!important;
+  z-index:20!important;
   width:100%!important;
-  height:72px!important;
-  margin:-72px 0 0!important;
-  overflow:hidden!important;
+  height:0!important;
+  margin:0!important;
+  overflow:visible!important;
   pointer-events:none!important;
   background:transparent!important;
   isolation:isolate;
@@ -2569,42 +2568,24 @@
 
 .about-wave-svg{
   position:absolute!important;
-  inset:0!important;
-  left:-1%!important;
-  width:102%!important;
-  height:100%!important;
+  z-index:20!important;
+  top:-44px!important;
+  left:-1.5%!important;
+  width:103%!important;
+  height:88px!important;
   display:block!important;
   overflow:visible!important;
-  animation:aboutIntegratedWaveDrift 15s ease-in-out infinite alternate!important;
+  animation:aboutSeamWaveDrift 16s ease-in-out infinite alternate!important;
 }
 
-/* The lower fill is the exact surface of the next section. */
-.about-wave-light-paper{--about-wave-light:#fffaf4}
-.about-wave-light-founder{--about-wave-light:#fbf4ec}
-.about-wave-light-memory{--about-wave-light:#f3e3d2}
-
-.about-wave-dark-light{--about-wave-next:var(--about-wave-light)}
-.about-wave-light-dark{--about-wave-next:#2c160b}
-
-.about-wave-fill{
-  fill:var(--about-wave-next)!important;
+/* This fill fades away into the ACTUAL next-section background,
+   so there is no flat brown/cream band to mismatch the section. */
+.about-wave-next-fill{
+  opacity:1!important;
 }
 
-/* A visible but delicate metallic ribbon between the two surfaces. */
-.about-wave-ribbon{
-  fill:#b77d43!important;
-  opacity:.34!important;
-}
-
-.about-wave-dark-light .about-wave-ribbon{
-  fill:#c8955b!important;
-  opacity:.38!important;
-}
-.about-wave-light-dark .about-wave-ribbon{
-  fill:#b9783f!important;
-  opacity:.32!important;
-}
-
+/* Caramel under-stroke gives the divider body without creating a block. */
+.about-wave-gold-band,
 .about-wave-gold-soft,
 .about-wave-gold-line{
   fill:none!important;
@@ -2613,31 +2594,29 @@
   stroke-linejoin:round!important;
 }
 
+.about-wave-gold-band{
+  stroke:#a96e36!important;
+  stroke-width:10!important;
+  opacity:.26!important;
+}
+
 .about-wave-gold-soft{
-  stroke:#f0cf8b!important;
-  stroke-width:1.15!important;
-  opacity:.72!important;
-  filter:drop-shadow(0 0 1.2px rgba(239,198,119,.24));
+  stroke:#f0cf8d!important;
+  stroke-width:1.25!important;
+  opacity:.82!important;
+  filter:drop-shadow(0 0 1px rgba(241,205,137,.28));
 }
 
 .about-wave-gold-line{
-  stroke:#d3a04e!important;
-  stroke-width:2!important;
-  opacity:.98!important;
+  stroke:#d5a04a!important;
+  stroke-width:2.25!important;
+  opacity:1!important;
   filter:
-    drop-shadow(0 0 1px rgba(246,211,143,.42))
-    drop-shadow(0 1px 1px rgba(89,45,18,.12));
+    drop-shadow(0 0 1.2px rgba(247,214,148,.46))
+    drop-shadow(0 1px 1px rgba(82,41,15,.15));
 }
 
-/* The next section begins exactly where the divider finishes. */
-.about-wave + .inner-section,
-.about-wave + .about-word,
-.about-wave + .founder-reference,
-.about-wave + .inner-closing{
-  margin-top:0!important;
-}
-
-/* Preserve the true section colors at the seam. */
+/* Keep the exact page colors; dividers only decorate the seam. */
 .inner-paper{
   background:linear-gradient(180deg,#fffaf4 0%,#fbf2e7 100%);
 }
@@ -2647,7 +2626,25 @@
     linear-gradient(180deg,#fbf4ec 0%,#f7ede2 100%)!important;
 }
 
-/* No old decorative wave/floral layer may reappear. */
+/* Give the dark sections a short stable seam color before their
+   existing gradient develops. This matches the fading SVG fill. */
+.about-word{
+  background:
+    linear-gradient(180deg,#32180d 0 52px,transparent 118px),
+    radial-gradient(circle at 78% 18%,rgba(151,90,48,.17),transparent 32%),
+    radial-gradient(circle at 12% 82%,rgba(106,61,34,.11),transparent 28%),
+    linear-gradient(145deg,#2c160b 0%,#3b1d0e 57%,#211108 100%)!important;
+}
+.inner-closing{
+  background:
+    linear-gradient(180deg,#32180d 0 52px,transparent 118px),
+    linear-gradient(145deg,#2c160b,#3d1d0d 58%,#211006)!important;
+}
+
+/* Never allow any legacy divider/floral layer to reappear. */
+.about-wave-ribbon,
+.about-wave-fill,
+.about-wave-gold-glow,
 .about-wave-floral,
 .about-wave-floral-left,
 .about-wave-floral-right,
@@ -2655,39 +2652,49 @@
   display:none!important;
 }
 
-@keyframes aboutIntegratedWaveDrift{
-  0%{transform:translate3d(-.22%,0,0) scaleX(1.004)}
-  100%{transform:translate3d(.22%,1px,0) scaleX(1.008)}
+.about-wave + .inner-section,
+.about-wave + .about-word,
+.about-wave + .founder-reference,
+.about-wave + .inner-closing{
+  margin-top:0!important;
+}
+
+@keyframes aboutSeamWaveDrift{
+  0%{transform:translate3d(-.18%,0,0) scaleX(1.003)}
+  100%{transform:translate3d(.18%,.7px,0) scaleX(1.007)}
 }
 
 @media(max-width:820px){
-  .about-wave{
-    height:62px!important;
-    margin-top:-62px!important;
+  .about-wave-svg{
+    top:-38px!important;
+    height:76px!important;
+  }
+  .about-wave-gold-band{
+    stroke-width:9!important;
+    opacity:.25!important;
   }
   .about-wave-gold-line{
-    stroke-width:1.85!important;
+    stroke-width:2.05!important;
   }
 }
 
 @media(max-width:420px){
-  .about-wave{
-    height:56px!important;
-    margin-top:-56px!important;
-  }
   .about-wave-svg{
+    top:-35px!important;
     left:-2%!important;
     width:104%!important;
+    height:70px!important;
   }
-  .about-wave-ribbon{
-    opacity:.38!important;
+  .about-wave-gold-band{
+    stroke-width:8!important;
+    opacity:.24!important;
   }
   .about-wave-gold-soft{
-    stroke-width:1!important;
-    opacity:.78!important;
+    stroke-width:1.1!important;
+    opacity:.86!important;
   }
   .about-wave-gold-line{
-    stroke-width:1.75!important;
+    stroke-width:1.95!important;
   }
 }
 

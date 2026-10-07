@@ -7,12 +7,27 @@ import{AboutScripture}from"@/components/about-scripture";
 export const metadata={title:"Sobre"};
 
 function AboutDivider({tone,lightSurface="paper"}:{tone:"light-dark"|"dark-light";lightSurface?:"paper"|"founder"|"memory"}){
+  const nextColor=tone==="light-dark"
+    ?"#32180d"
+    :lightSurface==="memory"
+      ?"#f3e3d2"
+      :lightSurface==="founder"
+        ?"#fbf4ec"
+        :"#fffaf4";
+  const gradientId="about-wave-fade-"+tone+"-"+lightSurface;
   return <div className={"about-wave about-wave-"+tone+" about-wave-light-"+lightSurface} aria-hidden="true">
-    <svg className="about-wave-svg" viewBox="0 0 1200 96" preserveAspectRatio="none">
-      <path className="about-wave-ribbon" d="M0 34C185 16 330 22 505 42C700 64 880 63 1200 28L1200 96H0Z"/>
-      <path className="about-wave-fill" d="M0 48C188 30 334 36 508 55C702 77 884 76 1200 42L1200 96H0Z"/>
-      <path className="about-wave-gold-soft" d="M0 34C185 16 330 22 505 42C700 64 880 63 1200 28"/>
-      <path className="about-wave-gold-line" d="M0 48C188 30 334 36 508 55C702 77 884 76 1200 42"/>
+    <svg className="about-wave-svg" viewBox="0 0 1200 88" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={nextColor} stopOpacity="1"/>
+          <stop offset="58%" stopColor={nextColor} stopOpacity=".92"/>
+          <stop offset="100%" stopColor={nextColor} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <path className="about-wave-next-fill" fill={"url(#"+gradientId+")"} d="M0 34C190 16 338 21 510 41C704 64 888 63 1200 27V88H0Z"/>
+      <path className="about-wave-gold-band" d="M0 34C190 16 338 21 510 41C704 64 888 63 1200 27"/>
+      <path className="about-wave-gold-soft" d="M0 30C190 12 338 17 510 37C704 60 888 59 1200 23"/>
+      <path className="about-wave-gold-line" d="M0 34C190 16 338 21 510 41C704 64 888 63 1200 27"/>
     </svg>
   </div>;
 }
