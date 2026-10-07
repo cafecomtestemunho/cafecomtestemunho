@@ -515,7 +515,7 @@ function SectionEditor({section,title,onSave,notify}:{section:AnyRow;title:strin
   const isAboutTestimony=section.section_key==="about_testimony";
   const isAboutCta=section.section_key==="about_cta";
   const isSubmitCopy=["submit_testimonial_intro","submit_testimonial_privacy"].includes(section.section_key);
-  const isMandatoryHero=["home_hero","about_mission","agenda_hero","photos_hero","testimonials_hero","submit_testimonial_hero"].includes(section.section_key);
+  const isFixedVisibility=["home_hero","about_mission","agenda_hero","photos_hero","testimonials_hero","submit_testimonial_hero","submit_testimonial_intro","submit_testimonial_privacy"].includes(section.section_key);
   const[t,setT]=useState(section.title||""),[sub,setSub]=useState(section.subtitle||""),[body,setBody]=useState(section.body||""),[visible,setVisible]=useState(section.visible!==false);
   const[image,setImage]=useState(section.image_url||""),[ctaLabel,setCtaLabel]=useState(section.cta_label||""),[ctaUrl,setCtaUrl]=useState(section.cta_url||"");
   const[heroLogo,setHeroLogo]=useState(section.settings?.logo_url||"");
@@ -544,7 +544,7 @@ function SectionEditor({section,title,onSave,notify}:{section:AnyRow;title:strin
   return <details className="admin-section-card">
     <summary><div><span>{title}</span><small>{visible?"Visível no site":"Oculta no site"}</small></div><ChevronRight size={18}/></summary>
     <div className="admin-section-body">
-      {!isMandatoryHero&&<div className="admin-inline-toggle"><div><strong>Exibir seção</strong><span>{visible?"Esta seção aparece no site.":"Esta seção está escondida."}</span></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button" aria-label="Alternar visibilidade"><span/></button></div>}
+      {!isFixedVisibility&&<div className="admin-inline-toggle"><div><strong>Exibir seção</strong><span>{visible?"Esta seção aparece no site.":"Esta seção está escondida."}</span></div><button className={visible?"on":""} onClick={()=>setVisible(!visible)} type="button" aria-label="Alternar visibilidade"><span/></button></div>}
 
       {imageOnlyHero?<>
         <div className="admin-fixed-copy-note"><strong>Conteúdo visual da Hero</strong><span>O texto desta Hero faz parte do design da página. Aqui você troca somente a imagem de fundo.</span></div>
