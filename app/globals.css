@@ -2916,3 +2916,113 @@
     animation:none!important;
   }
 }
+
+
+/* =========================================================
+   ABOUT — three final micro adjustments
+   1. subtle motion only on the Hero divider
+   2. scripture content shifted upward while staying centered
+   3. founder testimony shifted upward and fully centered
+   ========================================================= */
+
+/* 1 — Hero divider: slightly more perceptible, still calm. */
+.about-wave-hero .about-wave-svg{
+  animation:aboutHeroDividerFloat 8.5s cubic-bezier(.45,0,.55,1) infinite alternate!important;
+  transform-origin:50% 50%;
+}
+
+@keyframes aboutHeroDividerFloat{
+  0%{
+    transform:translate3d(-.28%,0,0) scaleX(1.004);
+  }
+  50%{
+    transform:translate3d(.12%,1.2px,0) scaleX(1.009);
+  }
+  100%{
+    transform:translate3d(.34%,-.6px,0) scaleX(1.005);
+  }
+}
+
+/* 2 — Bíblia: same total vertical space, but content sits higher. */
+.about-word{
+  padding-top:60px!important;
+  padding-bottom:124px!important;
+}
+.about-word-inner{
+  margin-left:auto!important;
+  margin-right:auto!important;
+  text-align:center!important;
+}
+
+/* 3 — Testemunho fundador: raise it and center every element as one composition. */
+.founder-reference{
+  padding-top:40px!important;
+  padding-bottom:120px!important;
+}
+.founder-reference-content{
+  margin-left:auto!important;
+  margin-right:auto!important;
+  text-align:center!important;
+}
+.founder-reference-icon{
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+.founder-reference-content .inner-kicker{
+  width:max-content!important;
+  max-width:100%!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  text-align:center!important;
+}
+.founder-reference-content h2,
+.founder-reference-content p{
+  margin-left:auto!important;
+  margin-right:auto!important;
+  text-align:center!important;
+}
+.founder-reference-accent{
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+.founder-reference-content small{
+  text-align:center!important;
+}
+.founder-reference-link{
+  display:flex!important;
+  width:max-content!important;
+  max-width:100%!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+
+/* Preserve the same upward balance on tablet/mobile. */
+@media(max-width:820px){
+  .about-word{
+    padding-top:56px!important;
+    padding-bottom:112px!important;
+  }
+
+  .founder-reference{
+    padding-top:34px!important;
+    padding-bottom:110px!important;
+  }
+}
+
+@media(max-width:420px){
+  .about-word{
+    padding-top:50px!important;
+    padding-bottom:104px!important;
+  }
+
+  .founder-reference{
+    padding-top:30px!important;
+    padding-bottom:102px!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .about-wave-hero .about-wave-svg{
+    animation:none!important;
+  }
+}

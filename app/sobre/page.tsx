@@ -6,7 +6,7 @@ import{AboutScripture}from"@/components/about-scripture";
 
 export const metadata={title:"Sobre"};
 
-function AboutDivider({tone,lightSurface="paper"}:{tone:"light-dark"|"dark-light";lightSurface?:"paper"|"founder"|"memory"}){
+function AboutDivider({tone,lightSurface="paper",hero=false}:{tone:"light-dark"|"dark-light";lightSurface?:"paper"|"founder"|"memory";hero?:boolean}){
   const nextColor=tone==="light-dark"
     ?"#32180d"
     :lightSurface==="memory"
@@ -15,7 +15,7 @@ function AboutDivider({tone,lightSurface="paper"}:{tone:"light-dark"|"dark-light
         ?"#fbf4ec"
         :"#fffaf4";
 
-  return <div className={"about-wave about-wave-"+tone+" about-wave-light-"+lightSurface} aria-hidden="true">
+  return <div className={"about-wave about-wave-"+tone+" about-wave-light-"+lightSurface+(hero?" about-wave-hero":"")} aria-hidden="true">
     <svg className="about-wave-svg" viewBox="0 0 1200 84" preserveAspectRatio="none">
       <path
         className="about-wave-next-fill"
@@ -59,7 +59,7 @@ export default async function SobrePage(){
         </Reveal>
       </div>
     </section>
-    <AboutDivider tone="dark-light" lightSurface="paper"/>
+    <AboutDivider tone="dark-light" lightSurface="paper" hero/>
 
     <section className="inner-section inner-paper">
       <div className="container inner-narrow">
