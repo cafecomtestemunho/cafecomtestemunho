@@ -20,6 +20,7 @@ export function GalleryBulkUpload({
     const output:File[]=[];
     for(const file of selection){
       if(file.name.toLowerCase().endsWith(".zip")||file.type==="application/zip"||file.type==="application/x-zip-compressed"){
+        if(file.size>50*1024*1024)throw new Error("O ZIP deve ter no máximo 50 MB.");
         const JSZip=(await import("jszip")).default;
         const zip=await JSZip.loadAsync(file);
         const entries=Object.values(zip.files).filter(entry=>!entry.dir&&/\.(jpe?g|png|webp|gif)$/i.test(entry.name));
@@ -31,6 +32,7 @@ export function GalleryBulkUpload({
       }else if(file.type.startsWith("image/")){
         output.push(file);
       }
+      if(output.length>80)throw new Error("Envie no máximo 80 fotos por lote.");
     }
     return output;
   }
@@ -41,8 +43,8 @@ export function GalleryBulkUpload({
       const expanded=await expandSelection(Array.from(list));
       setFiles(expanded);
       notify(expanded.length?`${expanded.length} foto${expanded.length===1?"":"s"} pronta${expanded.length===1?"":"s"} para enviar.`:"Nenhuma imagem válida encontrada.");
-    }catch{
-      notify("Não foi possível abrir o ZIP. Verifique se ele contém imagens JPG, PNG ou WebP.");
+    }catch(error){
+      notify(error instanceof Error?error.message:"Não foi possível abrir o ZIP. Verifique se ele contém imagens JPG, PNG ou WebP.");
     }
   }
 
