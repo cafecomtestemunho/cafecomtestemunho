@@ -29,10 +29,10 @@ export default async function AgendaPage(){
       <div className="agenda-hero-shade" aria-hidden="true"/>
       <div className="container agenda-hero-content">
         <Reveal className="agenda-hero-copy">
-          <div className="agenda-eyebrow">{hero?.subtitle||"AGENDA"}</div>
-          <h1>{hero?.title||"Encontros do Café"}</h1>
+          <div className="agenda-eyebrow">AGENDA</div>
+          <h1>Encontros do Café</h1>
           <div className="agenda-gold-rule" aria-hidden="true"/>
-          <p>{hero?.body||"Um tempo para estar juntas, ouvir, compartilhar e fortalecer a fé."}</p>
+          <p>Um tempo para estar juntas, ouvir, compartilhar e fortalecer a fé.</p>
         </Reveal>
       </div>
     </section>
@@ -42,9 +42,9 @@ export default async function AgendaPage(){
     <section className="agenda-main-section">
       <div className="container inner-narrow">
         {intro?.visible!==false&&<Reveal className="agenda-section-intro">
-          <div className="agenda-eyebrow">{intro?.subtitle||"PRÓXIMOS ENCONTROS"}</div>
-          <h2>{intro?.title||"O próximo capítulo"}</h2>
-          <p>{intro?.body||"Confira as próximas datas e venha viver esse momento com a gente."}</p>
+          <div className="agenda-eyebrow">PRÓXIMOS ENCONTROS</div>
+          <h2>O próximo capítulo</h2>
+          <p>Confira as próximas datas e venha viver esse momento com a gente.</p>
         </Reveal>}
 
         <div className="agenda-list agenda-list-refined">
@@ -78,10 +78,10 @@ export default async function AgendaPage(){
       <div className="agenda-participate-overlay" aria-hidden="true"/>
       <div className="container inner-narrow">
         <Reveal className="agenda-participate-copy">
-          <div className="agenda-eyebrow">{cta?.subtitle||"FAÇA PARTE"}</div>
-          <h2>{cta?.title||"Há um lugar para você neste encontro."}</h2>
+          <div className="agenda-eyebrow">FAÇA PARTE</div>
+          <h2>Há um lugar para você neste encontro.</h2>
           <div className="agenda-participate-rule" aria-hidden="true"/>
-          <p>{cta?.body||"Cada encontro é feito de mulheres, histórias, fé e comunhão. Venha viver o próximo capítulo do Café com Testemunho conosco."}</p>
+          <p>Cada encontro é feito de mulheres, histórias, fé e comunhão. Venha viver o próximo capítulo do Café com Testemunho conosco.</p>
 
           <blockquote>
             “Oh! Como é bom e agradável viverem unidos os irmãos!”
@@ -89,7 +89,7 @@ export default async function AgendaPage(){
           </blockquote>
 
           <Link className="agenda-participate-button" href={participateHref}>
-            {cta?.cta_label||"Quero participar"} <span aria-hidden="true">→</span>
+            Quero participar <span aria-hidden="true">→</span>
           </Link>
         </Reveal>
       </div>
