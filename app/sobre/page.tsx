@@ -6,21 +6,13 @@ import{AboutScripture}from"@/components/about-scripture";
 
 export const metadata={title:"Sobre"};
 
-function AboutDivider({tone}:{tone:"light-dark"|"dark-light"}){
-  const lightDark=tone==="light-dark";
-  return <div className={"about-wave about-wave-"+tone} aria-hidden="true">
+function AboutDivider({tone,lightSurface="paper"}:{tone:"light-dark"|"dark-light";lightSurface?:"paper"|"founder"|"memory"}){
+  return <div className={"about-wave about-wave-"+tone+" about-wave-light-"+lightSurface} aria-hidden="true">
     <svg className="about-wave-svg" viewBox="0 0 1200 96" preserveAspectRatio="none">
-      {lightDark?<>
-        <path className="about-wave-ribbon" d="M0 0H1200V66C1005 37 842 34 655 55C449 78 267 81 0 47Z"/>
-        <path className="about-wave-fill" d="M0 0H1200V58C1005 30 842 27 655 48C449 71 267 74 0 40Z"/>
-        <path className="about-wave-gold-glow" d="M0 40C250 73 447 72 655 48C846 26 1018 31 1200 58"/>
-        <path className="about-wave-gold-line" d="M0 40C250 73 447 72 655 48C846 26 1018 31 1200 58"/>
-      </>:<>
-        <path className="about-wave-ribbon" d="M0 0H1200V39C1008 69 844 65 656 47C451 26 269 24 0 61Z"/>
-        <path className="about-wave-fill" d="M0 0H1200V31C1008 61 844 58 656 40C451 20 269 18 0 54Z"/>
-        <path className="about-wave-gold-glow" d="M0 54C250 18 447 19 656 40C846 59 1019 60 1200 31"/>
-        <path className="about-wave-gold-line" d="M0 54C250 18 447 19 656 40C846 59 1019 60 1200 31"/>
-      </>}
+      <path className="about-wave-ribbon" d="M0 34C185 16 330 22 505 42C700 64 880 63 1200 28L1200 96H0Z"/>
+      <path className="about-wave-fill" d="M0 48C188 30 334 36 508 55C702 77 884 76 1200 42L1200 96H0Z"/>
+      <path className="about-wave-gold-soft" d="M0 34C185 16 330 22 505 42C700 64 880 63 1200 28"/>
+      <path className="about-wave-gold-line" d="M0 48C188 30 334 36 508 55C702 77 884 76 1200 42"/>
     </svg>
   </div>;
 }
@@ -55,7 +47,7 @@ export default async function SobrePage(){
         </Reveal>
       </div>
     </section>
-    <AboutDivider tone="dark-light"/>
+    <AboutDivider tone="dark-light" lightSurface="paper"/>
 
     <section className="inner-section inner-paper">
       <div className="container inner-narrow">
@@ -81,7 +73,7 @@ export default async function SobrePage(){
 
     {wordSection?.visible!==false&&scripture&&<AboutDivider tone="light-dark"/>}
     {wordSection?.visible!==false&&scripture&&<AboutScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} kicker={wordSection?.subtitle}/>} 
-    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="dark-light"/>}
+    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="dark-light" lightSurface={hasPhotos?"memory":"founder"}/>}
 
 
     {hasPhotos&&<section className="inner-section inner-memory-section">
