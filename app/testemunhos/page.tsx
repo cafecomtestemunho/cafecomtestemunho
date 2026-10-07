@@ -25,10 +25,7 @@ export default async function TestemunhosPage(){
     <section className="testimonials-hero-refined" style={heroStyle}>
       <div className="testimonials-hero-shade" aria-hidden="true"/>
       <div className="container testimonials-hero-content">
-        <Reveal className="testimonials-hero-copy">
-          <div className="testimonials-eyebrow">TESTEMUNHOS</div>
-          <h1>Histórias que acolhem. Histórias que apontam para Deus.</h1>
-          <p>Cada testemunho carrega um capítulo real de fé, espera, recomeço e transformação.</p>
+        <Reveal className="testimonials-hero-copy testimonials-hero-cycle-only">
           <TestimonyWordCycle/>
         </Reveal>
       </div>
