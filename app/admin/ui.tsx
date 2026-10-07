@@ -4,9 +4,9 @@ import{useMemo,useRef,useState}from"react";
 import{GalleryBulkUpload}from"./gallery-upload";
 import{createClient}from"@/lib/supabase/client";
 import{
-  Home,PanelsTopLeft,CalendarDays,Settings2,ChevronLeft,ChevronRight,
-  Image as ImageIcon,Upload,Save,Plus,Eye,EyeOff,BookHeart,Instagram,MessageSquareQuote,
-  Images,LogOut,ExternalLink,SlidersHorizontal,LayoutDashboard,UsersRound,Clock3,Ticket,MapPin,Trash2
+  PanelsTopLeft,CalendarDays,Settings2,ChevronLeft,ChevronRight,
+  Image as ImageIcon,Upload,Save,Plus,BookHeart,Instagram,MessageSquareQuote,
+  Images,LogOut,ExternalLink,LayoutDashboard,UsersRound,Clock3,Ticket,Trash2
 }from"lucide-react";
 
 type AnyRow=Record<string,any>;
