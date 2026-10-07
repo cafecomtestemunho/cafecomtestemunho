@@ -306,7 +306,7 @@ export function AdminClient({
   const selectedTestimonial=testimonials.find(item=>item.id===selectedTestimonialId)||null;
   const selectedPublication=selectedTestimonial?publications.find(item=>item.testimonial_id===selectedTestimonial.id):null;
 
-  function goTab(next:MainTab){setTab(next);setSelectedPage(null);setSelectedTestimonialId(null)}
+  function goTab(next:MainTab){setTab(next);setSelectedPage(null);setSelectedTestimonialId(null);setSelectedEventId(null)}
 
   return <main className="admin-mobile-shell">
     <div className="admin-mobile-content">
@@ -315,10 +315,10 @@ export function AdminClient({
           <span className="admin-kicker">Café com Testemunho</span>
           <h1>{tab==="dashboard"?"Painel":tab==="events"?"Eventos":tab==="testimonials"?"Testemunhos":tab==="gallery"?"Galeria":tab==="pages"?(currentPage?.label||"Páginas"):"Ajustes"}</h1>
         </div>
-        <div className="admin-heading-actions">
+        {!selectedEventId&&!selectedTestimonialId&&!selectedPage&&<div className="admin-heading-actions">
           <a className="admin-header-icon" href="/" target="_blank" rel="noreferrer" aria-label="Ver site"><ExternalLink size={18}/></a>
           <button className={"admin-header-icon "+(tab==="settings"?"active":"")} type="button" onClick={()=>goTab(tab==="settings"?"dashboard":"settings")} aria-label="Abrir ajustes"><Settings2 size={18}/></button>
-        </div>
+        </div>}
       </header>
 
       {message&&<div className="admin-toast">{message}</div>}
