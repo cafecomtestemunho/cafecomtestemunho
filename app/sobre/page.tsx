@@ -14,20 +14,17 @@ function AboutDivider({tone,lightSurface="paper"}:{tone:"light-dark"|"dark-light
       :lightSurface==="founder"
         ?"#fbf4ec"
         :"#fffaf4";
-  const gradientId="about-wave-fade-"+tone+"-"+lightSurface;
+
   return <div className={"about-wave about-wave-"+tone+" about-wave-light-"+lightSurface} aria-hidden="true">
-    <svg className="about-wave-svg" viewBox="0 0 1200 88" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={nextColor} stopOpacity="1"/>
-          <stop offset="58%" stopColor={nextColor} stopOpacity=".92"/>
-          <stop offset="100%" stopColor={nextColor} stopOpacity="0"/>
-        </linearGradient>
-      </defs>
-      <path className="about-wave-next-fill" fill={"url(#"+gradientId+")"} d="M0 34C190 16 338 21 510 41C704 64 888 63 1200 27V88H0Z"/>
-      <path className="about-wave-gold-band" d="M0 34C190 16 338 21 510 41C704 64 888 63 1200 27"/>
-      <path className="about-wave-gold-soft" d="M0 30C190 12 338 17 510 37C704 60 888 59 1200 23"/>
-      <path className="about-wave-gold-line" d="M0 34C190 16 338 21 510 41C704 64 888 63 1200 27"/>
+    <svg className="about-wave-svg" viewBox="0 0 1200 112" preserveAspectRatio="none">
+      <path
+        className="about-wave-next-fill"
+        fill={nextColor}
+        d="M0 42C190 21 338 27 510 51C704 78 888 76 1200 34V112H0Z"
+      />
+      <path className="about-wave-gold-band" d="M0 42C190 21 338 27 510 51C704 78 888 76 1200 34"/>
+      <path className="about-wave-gold-soft" d="M0 37C190 16 338 22 510 46C704 73 888 71 1200 29"/>
+      <path className="about-wave-gold-line" d="M0 42C190 21 338 27 510 51C704 78 888 76 1200 34"/>
     </svg>
   </div>;
 }

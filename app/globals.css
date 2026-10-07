@@ -2766,27 +2766,69 @@
   }
 }
 
-
 /* =========================================================
-   ABOUT — divider overlap depth adjustment
-   Increase visual height so the wave overlaps the upper section
-   and no straight section cut remains visible.
+   ABOUT — true overlap fix
+   The whole divider sits inside the previous section.
+   Its lower fill reaches the real section boundary, hiding the straight cut.
    ========================================================= */
-.about-wave-svg{
-  top:-58px!important;
+.about-wave{
+  position:relative!important;
+  z-index:20!important;
+  width:100%!important;
   height:112px!important;
+  margin:-112px 0 0!important;
+  overflow:visible!important;
+  pointer-events:none!important;
+  background:transparent!important;
+}
+
+.about-wave-svg{
+  position:absolute!important;
+  inset:0!important;
+  top:0!important;
+  left:-1.5%!important;
+  width:103%!important;
+  height:112px!important;
+  display:block!important;
+  overflow:visible!important;
+  animation:aboutSeamWaveDrift 16s ease-in-out infinite alternate!important;
+}
+
+.about-wave-next-fill{
+  opacity:1!important;
+}
+
+/* The next section starts at the original seam, exactly where the
+   divider's solid fill ends, so no straight edge can show through. */
+.about-wave + .inner-section,
+.about-wave + .about-word,
+.about-wave + .founder-reference,
+.about-wave + .inner-closing{
+  margin-top:0!important;
 }
 
 @media(max-width:820px){
+  .about-wave{
+    height:102px!important;
+    margin-top:-102px!important;
+  }
+
   .about-wave-svg{
-    top:-53px!important;
+    top:0!important;
     height:102px!important;
   }
 }
 
 @media(max-width:420px){
+  .about-wave{
+    height:94px!important;
+    margin-top:-94px!important;
+  }
+
   .about-wave-svg{
-    top:-49px!important;
+    top:0!important;
+    left:-2%!important;
+    width:104%!important;
     height:94px!important;
   }
 }
