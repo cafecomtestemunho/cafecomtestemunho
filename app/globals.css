@@ -2371,3 +2371,176 @@
     animation:none!important;
   }
 }
+
+
+/* =========================================================
+   ABOUT WAVE DIVIDERS — final cleanup
+   ========================================================= */
+.about-wave-divider{
+  position:relative!important;
+  z-index:7!important;
+  width:100%!important;
+  height:52px!important;
+  margin:0!important;
+  overflow:hidden!important;
+  pointer-events:none!important;
+}
+.about-wave-light-dark{
+  --wave-from:#fbf2e7!important;
+  --wave-to:#2c160b!important;
+  --wave-soft:rgba(226,191,154,.34)!important;
+  --wave-line:rgba(184,125,78,.38)!important;
+  background:var(--wave-from)!important;
+}
+.about-wave-dark-light{
+  --wave-from:#2c160b!important;
+  --wave-to:#f7ede2!important;
+  --wave-soft:rgba(245,225,204,.16)!important;
+  --wave-line:rgba(199,145,96,.32)!important;
+  background:var(--wave-from)!important;
+}
+.about-wave-svg{
+  position:absolute!important;
+  inset:0!important;
+  width:102%!important;
+  height:100%!important;
+  left:-1%!important;
+  display:block!important;
+  transform:none!important;
+  animation:aboutWaveSlideFinal 13s ease-in-out infinite alternate!important;
+}
+.about-wave-main{fill:var(--wave-to)!important}
+.about-wave-soft{fill:var(--wave-soft)!important}
+.about-wave-line{
+  fill:none!important;
+  stroke:var(--wave-line)!important;
+  stroke-width:1.15!important;
+  vector-effect:non-scaling-stroke!important;
+}
+
+/* The final founder -> CTA divider is a little taller only to host the side florals. */
+.about-wave-divider.about-wave-with-floral{
+  height:78px!important;
+  overflow:visible!important;
+}
+.about-wave-with-floral .about-wave-svg{
+  top:22px!important;
+  height:56px!important;
+}
+.about-wave-floral,
+.about-wave-floral-svg{
+  display:none!important;
+}
+.about-wave-floral-svg{
+  position:absolute!important;
+  z-index:9!important;
+  top:0!important;
+  display:block!important;
+  width:154px!important;
+  height:66px!important;
+  fill:none!important;
+  stroke:#b77d4c!important;
+  stroke-width:1.45!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+  opacity:.58!important;
+  overflow:visible!important;
+  animation:aboutFloralFinal 11s ease-in-out infinite alternate!important;
+}
+.about-wave-floral-svg ellipse,
+.about-wave-floral-svg circle{
+  fill:#c99363!important;
+  stroke:none!important;
+  opacity:.82!important;
+}
+.about-wave-floral-left{
+  left:-30px!important;
+  right:auto!important;
+  transform:none!important;
+}
+.about-wave-floral-right{
+  right:-30px!important;
+  left:auto!important;
+  transform:scaleX(-1)!important;
+  animation-name:aboutFloralFinalRight!important;
+}
+
+/* Kill all former experimental wave layers so only the SVG divider remains. */
+.about-divider,
+.about-divider-ref,
+.about-divider-wave,
+.about-divider-seal,
+.about-divider-leaf,
+.about-wave-light-section::before,
+.founder-reference-wave,
+.founder-reference-waves::after,
+.founder-reference::after,
+.founder-reference .founder-reference-branch,
+.founder-reference-waves .founder-reference-branch{
+  display:none!important;
+}
+
+/* No circular clipping / no inherited giant arc. */
+.about-word,
+.founder-reference,
+.inner-memory-section,
+.inner-closing{
+  border-radius:0!important;
+}
+.about-word{
+  margin:0!important;
+}
+.founder-reference{
+  margin:0!important;
+  overflow:hidden!important;
+  padding-top:58px!important;
+  padding-bottom:64px!important;
+}
+.inner-closing{
+  margin:0!important;
+}
+
+/* Ensure the sections sit directly against the controlled SVG transitions. */
+.about-wave-light-dark + .about-word,
+.about-word + .about-wave-dark-light,
+.about-wave-dark-light + .inner-memory-section,
+.about-wave-dark-light + .founder-reference,
+.about-wave-light-dark + .inner-closing{
+  margin-top:0!important;
+}
+
+@keyframes aboutWaveSlideFinal{
+  0%{transform:translate3d(-.35%,0,0) scaleX(1.006)}
+  100%{transform:translate3d(.35%,1px,0) scaleX(1.012)}
+}
+@keyframes aboutFloralFinal{
+  0%{transform:translate3d(0,0,0) rotate(-1deg)}
+  100%{transform:translate3d(4px,-2px,0) rotate(1deg)}
+}
+@keyframes aboutFloralFinalRight{
+  0%{transform:scaleX(-1) translate3d(0,0,0) rotate(-1deg)}
+  100%{transform:scaleX(-1) translate3d(4px,-2px,0) rotate(1deg)}
+}
+
+@media(max-width:820px){
+  .about-wave-divider{height:46px!important}
+  .about-wave-divider.about-wave-with-floral{height:68px!important}
+  .about-wave-with-floral .about-wave-svg{top:20px!important;height:48px!important}
+  .about-wave-floral-svg{width:132px!important;height:58px!important}
+  .about-wave-floral-left{left:-35px!important}
+  .about-wave-floral-right{right:-35px!important}
+}
+@media(max-width:420px){
+  .about-wave-divider{height:42px!important}
+  .about-wave-divider.about-wave-with-floral{height:62px!important}
+  .about-wave-with-floral .about-wave-svg{top:19px!important;height:43px!important}
+  .about-wave-floral-svg{width:118px!important;height:52px!important;opacity:.62!important}
+  .about-wave-floral-left{left:-38px!important}
+  .about-wave-floral-right{right:-38px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .about-wave-svg,
+  .about-wave-floral-svg{
+    animation:none!important;
+  }
+}
