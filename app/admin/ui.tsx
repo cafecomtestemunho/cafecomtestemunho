@@ -4,16 +4,14 @@ import{useMemo,useRef,useState}from"react";
 import{GalleryBulkUpload}from"./gallery-upload";
 import{createClient}from"@/lib/supabase/client";
 import{
-  Home,PanelsTopLeft,CalendarDays,LibraryBig,Settings2,ChevronLeft,ChevronRight,
+  Home,PanelsTopLeft,CalendarDays,Settings2,ChevronLeft,ChevronRight,
   Image as ImageIcon,Upload,Save,Plus,Eye,EyeOff,BookHeart,Instagram,MessageSquareQuote,
   Images,LogOut,ExternalLink,SlidersHorizontal,LayoutDashboard,UsersRound,Clock3,Ticket,MapPin,Trash2
 }from"lucide-react";
 
 type AnyRow=Record<string,any>;
 type MainTab="dashboard"|"events"|"testimonials"|"gallery"|"pages"|"settings";
-type EditMode="basic"|"advanced";
 type PageKey="home"|"about"|"agenda"|"photos"|"testimonials"|"submit";
-type LibraryKey="photos"|"testimonials"|"scripture"|"instagram";
 
 const pages:{key:PageKey;label:string;description:string;sections:string[];special?:string}[]=[
   {key:"home",label:"Página inicial",description:"Hero, história, Palavra, encontro, fotos, testemunhos, Instagram e chamada final.",sections:["home_hero","home_intro","home_word","home_event","home_photos","home_testimonials","home_instagram","home_cta"]},
@@ -48,11 +46,9 @@ export function AdminClient({
   const s=useMemo(()=>createClient(),[]);
   const[tab,setTab]=useState<MainTab>("dashboard");
   const[selectedPage,setSelectedPage]=useState<PageKey|null>(null);
-  const[selectedLibrary,setSelectedLibrary]=useState<LibraryKey>("photos");
   const[selectedTestimonialId,setSelectedTestimonialId]=useState<string|null>(null);
   const[testimonialView,setTestimonialView]=useState<"new"|"review"|"published"|"archived">("new");
   const[eventView,setEventView]=useState<"all"|"draft"|"published"|"closed">("all");
-  const[mode,setMode]=useState<EditMode>("basic");
   const[message,setMessage]=useState("");
   const[events,setEvents]=useState(initialEvents);
   const[selectedEventId,setSelectedEventId]=useState<string|null>(null);
@@ -192,17 +188,6 @@ export function AdminClient({
     notify("Rascunho de publicação preparado. Revise antes de publicar.");
   }
 
-  async function publish(t:AnyRow){
-    if(t.publication_consent==="PRIVATE_ONLY"){notify("Este testemunho não autoriza publicação.");return}
-    const title=(t.original_text.split(/[.!?\n]/)[0]||"Testemunho").trim().slice(0,90);
-    const slug=(slugify(title)||"testemunho")+"-"+String(t.id).slice(0,8);
-    const display=t.publication_consent==="ANONYMOUS"?"Anônimo":(t.display_name_original||"Anônimo");
-    const excerpt=t.original_text.replace(/\s+/g," ").slice(0,220);
-    const{data:pub,error}=await s.from("testimonial_publications").upsert({testimonial_id:t.id,slug,public_title:title,public_excerpt:excerpt,public_text:t.original_text,public_display_name:display,published_at:new Date().toISOString(),edited_by:userId},{onConflict:"testimonial_id"}).select().single();
-    if(error){notify(error.message);return}
-    setPublications(current=>current.some(x=>x.id===pub.id)?current.map(x=>x.id===pub.id?pub:x):[pub,...current]);
-    await moderate(t.id,"PUBLICADO");
-  }
   async function savePublication(id:string,patch:AnyRow){
     const{data,error}=await s.from("testimonial_publications").update({...patch,edited_by:userId}).eq("id",id).select().single();
     if(error){notify(error.message);return}
@@ -233,12 +218,6 @@ export function AdminClient({
     if(error){notify(error.message);return}
     setAlbums(current=>current.filter(x=>x.id!==id));
     setPhotos(current=>current.map(x=>x.album_id===id?{...x,album_id:null}:x));notify("Álbum removido.");
-  }
-  async function uploadPhoto(e:React.FormEvent<HTMLFormElement>){
-    e.preventDefault();const form=e.currentTarget;const fd=new FormData(form);fd.set("featured",String(fd.get("featured")==="on"));notify("Enviando imagem...");
-    const res=await fetch("/api/admin/photos",{method:"POST",body:fd});const payload=await res.json();
-    if(!res.ok){notify(payload.error||"Não foi possível enviar a imagem.");return}
-    setPhotos([payload.photo,...photos]);form.reset();notify("Foto enviada.");
   }
   async function savePhoto(id:string,patch:AnyRow){
     const previous=photos.find(x=>x.id===id);
@@ -327,7 +306,7 @@ export function AdminClient({
   const selectedTestimonial=testimonials.find(item=>item.id===selectedTestimonialId)||null;
   const selectedPublication=selectedTestimonial?publications.find(item=>item.testimonial_id===selectedTestimonial.id):null;
 
-  function goTab(next:MainTab){setTab(next);setSelectedPage(null);if(next!=="pages")setMode("basic")}
+  function goTab(next:MainTab){setTab(next);setSelectedPage(null);setSelectedTestimonialId(null)}
 
   return <main className="admin-mobile-shell">
     <div className="admin-mobile-content">
@@ -383,7 +362,7 @@ export function AdminClient({
           const e=events.find(x=>x.id===selectedEventId);
           if(!e)return <div className="admin-empty">Evento não encontrado.</div>;
           return <EventWizard
-            event={e} mode={mode} setMode={setMode} onBack={()=>setSelectedEventId(null)} onSave={saveEvent} notify={notify}
+            event={e} onBack={()=>setSelectedEventId(null)} onSave={saveEvent} notify={notify}
             guests={eventGuests.filter(x=>x.event_id===e.id)} schedule={eventSchedule.filter(x=>x.event_id===e.id)} faqs={eventFaqs.filter(x=>x.event_id===e.id)}
             onAddGuest={addEventGuest} onUpdateGuest={updateEventGuest} onDeleteGuest={deleteEventGuest}
             onAddSchedule={addScheduleItem} onUpdateSchedule={updateScheduleItem} onDeleteSchedule={deleteScheduleItem}
@@ -459,7 +438,7 @@ export function AdminClient({
       {tab==="pages"&&<section className="admin-screen">
         {!currentPage?<div className="admin-page-list">
           <div className="admin-section-intro"><span className="eyebrow">Conteúdo do site</span><h2>Páginas</h2><p>Escolha uma página. Dentro dela aparecem somente os campos que realmente controlam aquela tela.</p></div>
-          {pages.map(p=><button className="admin-page-card admin-page-card-clean" key={p.key} onClick={()=>{setSelectedPage(p.key);setMode("basic")}}>
+          {pages.map(p=><button className="admin-page-card admin-page-card-clean" key={p.key} onClick={()=>setSelectedPage(p.key)}>
             <div><strong>{p.label}</strong><span>{p.description}</span></div><ChevronRight size={18}/>
           </button>)}
         </div>:<div className="admin-page-editor">
@@ -469,8 +448,8 @@ export function AdminClient({
           </div>
           <div className="admin-section-intro compact"><span className="eyebrow">Edição da página</span><h2>{currentPage.label}</h2><p>Abra uma seção por vez, edite o conteúdo e salve. Configurações técnicas ficam recolhidas.</p></div>
           <div className="admin-editor-stack">
-            {pageSections.map(sec=><SectionEditor key={sec.id} section={sec} mode="basic" title={sectionNames[sec.section_key]||sec.title} onSave={saveSection} notify={notify}/>)}
-            {currentPage.special==="story"&&<div className="admin-subsection-group"><div className="admin-subsection-title"><div><strong>História em capítulos</strong><span>Linha do tempo da página Sobre</span></div></div>{story.map(ch=><StoryEditor key={ch.id} chapter={ch} mode="basic" onSave={saveStory} onDelete={deleteStory} notify={notify}/>)}</div>}
+            {pageSections.map(sec=><SectionEditor key={sec.id} section={sec} title={sectionNames[sec.section_key]||sec.title} onSave={saveSection} notify={notify}/>)}
+            {currentPage.special==="story"&&<div className="admin-subsection-group"><div className="admin-subsection-title"><div><strong>História em capítulos</strong><span>Linha do tempo da página Sobre</span></div></div>{story.map(ch=><StoryEditor key={ch.id} chapter={ch} onSave={saveStory} onDelete={deleteStory} notify={notify}/>)}</div>}
           </div>
         </div>}
       </section>}
@@ -503,7 +482,7 @@ export function AdminClient({
           <div className="admin-editor-stack">{instagram.map(p=><InstagramAdminEditor key={p.id} item={p} onSave={saveInstagram} onDelete={deleteInstagram}/>)}</div>
         </div>
 
-        <SettingCard title="Rodapé">{sections.find(x=>x.section_key==="global_footer")&&<SectionEditor section={sections.find(x=>x.section_key==="global_footer")!} mode="basic" title="Conteúdo global do rodapé" onSave={saveSection} notify={notify}/>}</SettingCard>
+        <SettingCard title="Rodapé">{sections.find(x=>x.section_key==="global_footer")&&<SectionEditor section={sections.find(x=>x.section_key==="global_footer")!} title="Conteúdo global do rodapé" onSave={saveSection} notify={notify}/>}</SettingCard>
         <button className="admin-logout" onClick={logout}><LogOut size={18}/>Sair da conta <small>{userEmail}</small></button>
       </section>}
     </div>
@@ -518,12 +497,9 @@ export function AdminClient({
   </main>
 }
 
-function ModeSwitch({mode,setMode}:{mode:EditMode;setMode:(m:EditMode)=>void}){
-  return <div className="admin-mode-switch"><button className={mode==="basic"?"active":""} onClick={()=>setMode("basic")}>Básico</button><button className={mode==="advanced"?"active":""} onClick={()=>setMode("advanced")}><SlidersHorizontal size={16}/>Avançado</button></div>
-}
 function Field({label,children,hint}:{label:string;children:React.ReactNode;hint?:string}){return <div className="field"><label>{label}</label>{children}{hint&&<small className="field-hint">{hint}</small>}</div>}
 
-function SectionEditor({section,title,onSave,notify}:{section:AnyRow;mode:EditMode;title:string;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
+function SectionEditor({section,title,onSave,notify}:{section:AnyRow;title:string;onSave:(id:string,patch:AnyRow)=>void;notify:(m:string)=>void}){
   const isHomeHero=section.section_key==="home_hero";
   const isHomeIntro=section.section_key==="home_intro";
   const isHomeWord=section.section_key==="home_word";
@@ -607,7 +583,7 @@ function SectionEditor({section,title,onSave,notify}:{section:AnyRow;mode:EditMo
   </details>;
 }
 
-function StoryEditor({chapter,onSave,onDelete,notify}:{chapter:AnyRow;mode:EditMode;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void;notify:(m:string)=>void}){
+function StoryEditor({chapter,onSave,onDelete,notify}:{chapter:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void;notify:(m:string)=>void}){
   const[t,setT]=useState(chapter.title||""),[body,setBody]=useState(chapter.body||""),[eyebrow,setEyebrow]=useState(chapter.eyebrow||""),[quote,setQuote]=useState(chapter.quote||""),[image,setImage]=useState(chapter.image_url||""),[visible,setVisible]=useState(chapter.visible!==false);
   async function upload(file:File){
     const fd=new FormData();fd.set("file",file);fd.set("folder","conteudo/historia");notify("Enviando imagem...");
@@ -635,10 +611,10 @@ function StoryEditor({chapter,onSave,onDelete,notify}:{chapter:AnyRow;mode:EditM
 }
 
 function EventWizard({
-  event,mode,setMode,onBack,onSave,notify,guests,schedule,faqs,
+  event,onBack,onSave,notify,guests,schedule,faqs,
   onAddGuest,onUpdateGuest,onDeleteGuest,onAddSchedule,onUpdateSchedule,onDeleteSchedule,onAddFaq,onUpdateFaq,onDeleteFaq,onDeleteEvent
 }:{
-  event:AnyRow;mode:EditMode;setMode:(m:EditMode)=>void;onBack:()=>void;
+  event:AnyRow;onBack:()=>void;
   onSave:(id:string,patch:AnyRow)=>Promise<AnyRow|null>;notify:(m:string)=>void;
   guests:AnyRow[];schedule:AnyRow[];faqs:AnyRow[];
   onAddGuest:(eventId:string,payload:AnyRow)=>void;onUpdateGuest:(id:string,patch:AnyRow)=>void;onDeleteGuest:(id:string)=>void;
