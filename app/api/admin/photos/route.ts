@@ -15,11 +15,20 @@ export async function POST(request:Request){
   const featured=String(form.get("featured")||"false")==="true";
 
   if(!(file instanceof File))return Response.json({error:"Selecione uma imagem."},{status:400});
-  if(!file.type.startsWith("image/"))return Response.json({error:"Envie apenas arquivos de imagem."},{status:400});
+  const allowedByMime=file.type.startsWith("image/");
+  const allowedByExtension=/\.(jpe?g|png|webp|gif)$/i.test(file.name);
+  if(!allowedByMime&&!allowedByExtension)return Response.json({error:"Envie uma imagem JPG, JPEG, PNG, WebP ou GIF."},{status:400});
   if(file.size>8*1024*1024)return Response.json({error:"A imagem deve ter no máximo 8 MB."},{status:400});
 
   const safe=file.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9._-]+/g,"-");
-  const blob=await put("galeria/"+Date.now()+"-"+safe,file,{access:"public",addRandomSuffix:true});
+  const uploadFile=allowedByMime?file:new File([file],file.name,{type:guessMime(file.name),lastModified:file.lastModified});
+  let blob;
+  try{
+    blob=await put("galeria/"+Date.now()+"-"+safe,uploadFile,{access:"public",addRandomSuffix:true});
+  }catch(error){
+    console.error("Gallery blob upload failed",error);
+    return Response.json({error:"Não foi possível enviar a imagem para o armazenamento."},{status:500});
+  }
 
   const{data,error}=await s.from("media_assets").insert({
     url:blob.url,pathname:blob.pathname,alt_text:alt||null,media_type:"image",
@@ -47,4 +56,12 @@ export async function DELETE(request:Request){
   if(error)return Response.json({error:error.message},{status:500});
   await s.from("audit_logs").insert({user_id:user.id,action:"PHOTO_DELETED",entity_type:"media_asset",entity_id:id,metadata:{}});
   return Response.json({ok:true});
+}
+
+function guessMime(name:string){
+  const ext=name.toLowerCase().split(".").pop();
+  if(ext==="png")return"image/png";
+  if(ext==="webp")return"image/webp";
+  if(ext==="gif")return"image/gif";
+  return"image/jpeg";
 }

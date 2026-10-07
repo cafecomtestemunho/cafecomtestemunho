@@ -29,8 +29,9 @@ export function GalleryBulkUpload({
           const name=entry.name.split("/").pop()||"foto";
           output.push(new File([blob],name,{type:blob.type||guessMime(name)}));
         }
-      }else if(file.type.startsWith("image/")){
-        output.push(file);
+      }else if(isSupportedImage(file)){
+        if(file.size>8*1024*1024)throw new Error(`${file.name}: a imagem deve ter no máximo 8 MB.`);
+        output.push(normalizeImageFile(file));
       }
       if(output.length>80)throw new Error("Envie no máximo 80 fotos por lote.");
     }
@@ -52,21 +53,29 @@ export function GalleryBulkUpload({
     if(!files.length){notify("Selecione fotos ou um arquivo ZIP.");return}
     setProgress({done:0,total:files.length});
     const uploaded:AnyRow[]=[];
+    const errors:string[]=[];
     for(let index=0;index<files.length;index++){
-      const fd=new FormData();
-      fd.set("file",files[index]);
-      fd.set("album_id",albumId);
-      fd.set("featured","false");
-      const res=await fetch("/api/admin/photos",{method:"POST",body:fd});
-      const payload=await res.json();
-      if(res.ok&&payload.photo)uploaded.push(payload.photo);
+      try{
+        const fd=new FormData();
+        fd.set("file",files[index]);
+        fd.set("album_id",albumId);
+        fd.set("featured","false");
+        const res=await fetch("/api/admin/photos",{method:"POST",body:fd});
+        const raw=await res.text();
+        let payload:AnyRow={};
+        try{payload=raw?JSON.parse(raw):{}}catch{}
+        if(res.ok&&payload.photo)uploaded.push(payload.photo);
+        else errors.push(payload.error||`Falha ao enviar ${files[index].name} (HTTP ${res.status}).`);
+      }catch(error){
+        errors.push(error instanceof Error?error.message:`Falha ao enviar ${files[index].name}.`);
+      }
       setProgress({done:index+1,total:files.length});
     }
     if(uploaded.length)onUploaded(uploaded);
     const failed=files.length-uploaded.length;
     setFiles([]);
     setProgress(null);
-    notify(failed?`${uploaded.length} fotos enviadas. ${failed} falharam.`:`${uploaded.length} fotos enviadas para a galeria.`);
+    notify(failed?`${uploaded.length} fotos enviadas. ${failed} falharam. ${errors[0]||""}`.trim():`${uploaded.length} fotos enviadas para a galeria.`);
   }
 
   return <section className="admin-gallery-upload">
@@ -104,6 +113,15 @@ export function GalleryBulkUpload({
       {progress?"Enviando…":`Enviar ${files.length||""} foto${files.length===1?"":"s"}`}
     </button>
   </section>;
+}
+
+function isSupportedImage(file:File){
+  return file.type.startsWith("image/")||/\.(jpe?g|png|webp|gif)$/i.test(file.name);
+}
+
+function normalizeImageFile(file:File){
+  if(file.type.startsWith("image/"))return file;
+  return new File([file],file.name,{type:guessMime(file.name),lastModified:file.lastModified});
 }
 
 function guessMime(name:string){
