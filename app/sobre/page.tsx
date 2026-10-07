@@ -72,11 +72,11 @@ export default async function SobrePage(){
       </div>
     </section>
 
-    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="light-dark"/>}
+    {wordSection?.visible!==false&&scripture&&<AboutWave direction="light-dark"/>}
     {wordSection?.visible!==false&&scripture&&<AboutScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} kicker={wordSection?.subtitle}/>} 
 
 
-    {hasPhotos&&<section className="inner-section inner-memory-section about-wave-light-section">
+    {hasPhotos&&<section className="inner-section inner-memory-section">
       <div className="container inner-narrow">
         <Reveal className="inner-section-head"><div><div className="inner-kicker">{photosSection?.subtitle||"Memórias"}</div><h2>{photosSection?.title||"Momentos que fazem parte dessa história"}</h2>{photosSection?.body&&<p>{photosSection.body}</p>}</div><Link href="/fotos">Ver todas <ArrowRight size={16}/></Link></Reveal>
         <div className="inner-photo-strip">{photos.map((photo,i)=><Reveal key={photo.id} delay={i*45}><figure><img src={photo.url} alt={photo.alt_text||"Memória do Café com Testemunho"} loading="lazy"/></figure></Reveal>)}</div>
@@ -106,6 +106,8 @@ export default async function SobrePage(){
 
 
     {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark-final"/>}
+
+    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutWave direction="light-dark" floral/>}
 
     {cta?.visible!==false&&<section className="inner-closing">
       <div className="container inner-narrow"><Reveal className="inner-closing-copy"><HeartHandshake size={26}/><div className="inner-kicker">Faça parte</div><h2>{cta?.title||"Essa história continua sendo escrita"}</h2><p>{cta?.body||"Cada encontro, cada mulher e cada testemunho acrescentam um novo capítulo a essa caminhada."}</p><div className="inner-actions"><Link className="inner-btn primary" href={cta?.cta_url||"/agenda"}>{cta?.cta_label||"Participar de um encontro"} <ArrowRight size={16}/></Link><Link className="inner-btn ghost" href="/enviar-testemunho">Compartilhar meu testemunho</Link></div></Reveal></div>
