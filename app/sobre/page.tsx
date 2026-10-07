@@ -29,6 +29,7 @@ export default async function SobrePage(){
   ]);
   const brand=(brandSetting?.value||{})as{name?:string;logo_url?:string};
   const heroStyle=mission?.image_url?{backgroundImage:`linear-gradient(180deg,rgba(34,17,8,.42),rgba(34,17,8,.76)),url("${mission.image_url}")`}:undefined;
+  const hasPhotos=photosSection?.visible!==false&&!!photos?.length;
 
   return <main className="inner-page">
     <section className="about-hero-refined" style={heroStyle}>
@@ -69,20 +70,20 @@ export default async function SobrePage(){
     {wordSection?.visible!==false&&scripture&&<AboutDivider tone="light-dark"/>}
     {wordSection?.visible!==false&&scripture&&<AboutScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} kicker={wordSection?.subtitle}/>} 
 
-    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="dark-light"/>}
 
-    {photosSection?.visible!==false&&!!photos?.length&&<section className="inner-section inner-memory-section">
+    {hasPhotos&&<section className="inner-section inner-memory-section about-wave-light-section">
       <div className="container inner-narrow">
         <Reveal className="inner-section-head"><div><div className="inner-kicker">{photosSection?.subtitle||"Memórias"}</div><h2>{photosSection?.title||"Momentos que fazem parte dessa história"}</h2>{photosSection?.body&&<p>{photosSection.body}</p>}</div><Link href="/fotos">Ver todas <ArrowRight size={16}/></Link></Reveal>
         <div className="inner-photo-strip">{photos.map((photo,i)=><Reveal key={photo.id} delay={i*45}><figure><img src={photo.url} alt={photo.alt_text||"Memória do Café com Testemunho"} loading="lazy"/></figure></Reveal>)}</div>
       </div>
     </section>}
 
-    {photosSection?.visible!==false&&!!photos?.length&&<AboutDivider tone="light-light"/>}
 
-    {testimonySection?.visible!==false&&<section className="founder-reference">
+    {testimonySection?.visible!==false&&<section className={"founder-reference founder-reference-waves "+(!hasPhotos?"founder-reference-from-dark":"")}>
       <div className="founder-reference-branch founder-reference-branch-a" aria-hidden="true"/>
       <div className="founder-reference-branch founder-reference-branch-b" aria-hidden="true"/>
+      <div className="founder-reference-wave founder-reference-wave-top" aria-hidden="true"/>
+      <div className="founder-reference-wave founder-reference-wave-bottom" aria-hidden="true"/>
       <div className="container inner-narrow">
         <Reveal className="founder-reference-content">
           <div className="founder-reference-icon" aria-hidden="true"><BookHeart size={19}/></div>
@@ -98,7 +99,6 @@ export default async function SobrePage(){
       </div>
     </section>}
 
-    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark-final"/>}
 
     {cta?.visible!==false&&<section className="inner-closing">
       <div className="container inner-narrow"><Reveal className="inner-closing-copy"><HeartHandshake size={26}/><div className="inner-kicker">Faça parte</div><h2>{cta?.title||"Essa história continua sendo escrita"}</h2><p>{cta?.body||"Cada encontro, cada mulher e cada testemunho acrescentam um novo capítulo a essa caminhada."}</p><div className="inner-actions"><Link className="inner-btn primary" href={cta?.cta_url||"/agenda"}>{cta?.cta_label||"Participar de um encontro"} <ArrowRight size={16}/></Link><Link className="inner-btn ghost" href="/enviar-testemunho">Compartilhar meu testemunho</Link></div></Reveal></div>
