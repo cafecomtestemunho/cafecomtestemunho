@@ -7,31 +7,19 @@ import{AboutScripture}from"@/components/about-scripture";
 export const metadata={title:"Sobre"};
 
 function AboutDivider({tone,floral=false}:{tone:"light-dark"|"dark-light";floral?:boolean}){
-  return <div className={"about-wave-divider about-wave-"+tone+(floral?" about-wave-with-floral":"")} aria-hidden="true">
-    <svg className="about-wave-svg" viewBox="0 0 1200 76" preserveAspectRatio="none">
-      <path className="about-wave-soft" d="M0 34 C165 24 292 39 430 37 C600 35 722 17 874 23 C1008 28 1105 36 1200 29 L1200 76 L0 76 Z"/>
-      <path className="about-wave-main" d="M0 46 C170 35 300 49 445 47 C608 45 731 29 878 34 C1016 39 1113 47 1200 40 L1200 76 L0 76 Z"/>
-      <path className="about-wave-line" d="M0 39 C168 29 298 43 438 41 C604 39 727 23 876 28 C1011 33 1108 41 1200 34"/>
+  return <div className={"about-wave about-wave-"+tone+(floral?" about-wave-floral":"")} aria-hidden="true">
+    <svg className="about-wave-svg" viewBox="0 0 1200 110" preserveAspectRatio="none">
+      {tone==="dark-light"?<>
+        <path className="about-wave-fill" d="M0 0H1200V29C1015 56 865 62 700 43C505 21 330 17 0 59Z"/>
+        <path className="about-wave-line" d="M0 55C240 17 430 19 690 43C875 60 1030 54 1200 29"/>
+      </>:<>
+        <path className="about-wave-fill" d="M0 0H1200V58C990 26 835 23 657 45C455 70 274 71 0 36Z"/>
+        <path className="about-wave-line" d="M0 36C250 70 447 70 655 45C845 22 1014 28 1200 58"/>
+      </>}
     </svg>
     {floral&&<>
-      <svg className="about-wave-floral-svg about-wave-floral-left" viewBox="0 0 240 92">
-        <path d="M5 83 C39 75 61 59 86 43 C112 27 139 35 166 24 C193 13 214 7 235 5"/>
-        <path d="M67 55 C56 43 50 34 49 24 M87 43 C94 29 105 19 119 12 M126 36 C123 23 127 12 137 5 M160 26 C168 16 179 9 192 6"/>
-        <ellipse cx="49" cy="24" rx="9" ry="4" transform="rotate(34 49 24)"/>
-        <ellipse cx="87" cy="43" rx="10" ry="4" transform="rotate(-48 87 43)"/>
-        <ellipse cx="126" cy="36" rx="10" ry="4" transform="rotate(45 126 36)"/>
-        <ellipse cx="160" cy="26" rx="10" ry="4" transform="rotate(-45 160 26)"/>
-        <circle cx="203" cy="8" r="2.4"/><circle cx="211" cy="6" r="1.9"/><circle cx="218" cy="5" r="1.7"/>
-      </svg>
-      <svg className="about-wave-floral-svg about-wave-floral-right" viewBox="0 0 240 92">
-        <path d="M5 83 C39 75 61 59 86 43 C112 27 139 35 166 24 C193 13 214 7 235 5"/>
-        <path d="M67 55 C56 43 50 34 49 24 M87 43 C94 29 105 19 119 12 M126 36 C123 23 127 12 137 5 M160 26 C168 16 179 9 192 6"/>
-        <ellipse cx="49" cy="24" rx="9" ry="4" transform="rotate(34 49 24)"/>
-        <ellipse cx="87" cy="43" rx="10" ry="4" transform="rotate(-48 87 43)"/>
-        <ellipse cx="126" cy="36" rx="10" ry="4" transform="rotate(45 126 36)"/>
-        <ellipse cx="160" cy="26" rx="10" ry="4" transform="rotate(-45 160 26)"/>
-        <circle cx="203" cy="8" r="2.4"/><circle cx="211" cy="6" r="1.9"/><circle cx="218" cy="5" r="1.7"/>
-      </svg>
+      <span className="about-wave-floral-left"/>
+      <span className="about-wave-floral-right"/>
     </>}
   </div>;
 }
@@ -90,7 +78,7 @@ export default async function SobrePage(){
       </div>
     </section>
 
-    {wordSection?.visible!==false&&scripture&&<AboutWave direction="light-dark"/>}
+    {wordSection?.visible!==false&&scripture&&<AboutDivider tone="light-dark"/>}
     {wordSection?.visible!==false&&scripture&&<AboutScripture verse={scripture.verse_text} reference={scripture.reference} reflection={scripture.reflection} kicker={wordSection?.subtitle}/>} 
     {wordSection?.visible!==false&&scripture&&<AboutDivider tone="dark-light"/>}
 
@@ -121,8 +109,6 @@ export default async function SobrePage(){
 
 
     {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutDivider tone="light-dark" floral/>}
-
-    {testimonySection?.visible!==false&&cta?.visible!==false&&<AboutWave direction="light-dark" floral/>}
 
     {cta?.visible!==false&&<section className="inner-closing">
       <div className="container inner-narrow"><Reveal className="inner-closing-copy"><HeartHandshake size={26}/><div className="inner-kicker">Faça parte</div><h2>{cta?.title||"Essa história continua sendo escrita"}</h2><p>{cta?.body||"Cada encontro, cada mulher e cada testemunho acrescentam um novo capítulo a essa caminhada."}</p><div className="inner-actions"><Link className="inner-btn primary" href={cta?.cta_url||"/agenda"}>{cta?.cta_label||"Participar de um encontro"} <ArrowRight size={16}/></Link><Link className="inner-btn ghost" href="/enviar-testemunho">Compartilhar meu testemunho</Link></div></Reveal></div>
