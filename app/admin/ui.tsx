@@ -1,6 +1,7 @@
 "use client";
 
 import{useMemo,useRef,useState}from"react";
+import{GalleryBulkUpload}from"./gallery-upload";
 import{createClient}from"@/lib/supabase/client";
 import{
   Home,PanelsTopLeft,CalendarDays,LibraryBig,Settings2,ChevronLeft,ChevronRight,
@@ -9,7 +10,7 @@ import{
 }from"lucide-react";
 
 type AnyRow=Record<string,any>;
-type MainTab="dashboard"|"pages"|"events"|"library"|"settings";
+type MainTab="dashboard"|"events"|"testimonials"|"gallery"|"pages"|"settings";
 type EditMode="basic"|"advanced";
 type PageKey="home"|"about"|"agenda"|"photos"|"testimonials"|"submit";
 type LibraryKey="photos"|"testimonials"|"scripture"|"instagram";
@@ -48,6 +49,9 @@ export function AdminClient({
   const[tab,setTab]=useState<MainTab>("dashboard");
   const[selectedPage,setSelectedPage]=useState<PageKey|null>(null);
   const[selectedLibrary,setSelectedLibrary]=useState<LibraryKey>("photos");
+  const[selectedTestimonialId,setSelectedTestimonialId]=useState<string|null>(null);
+  const[testimonialView,setTestimonialView]=useState<"new"|"review"|"published"|"archived">("new");
+  const[eventView,setEventView]=useState<"all"|"draft"|"published"|"closed">("all");
   const[mode,setMode]=useState<EditMode>("basic");
   const[message,setMessage]=useState("");
   const[events,setEvents]=useState(initialEvents);
@@ -168,6 +172,24 @@ export function AdminClient({
     }
     setTestimonials(current=>current.map(t=>t.id===id?data:t));await audit("TESTIMONIAL_STATUS_CHANGED","testimonial",id,{status});notify("Testemunho atualizado.");
   }
+  async function preparePublication(t:AnyRow){
+    if(t.publication_consent==="PRIVATE_ONLY"){notify("Este testemunho foi enviado somente para leitura privada.");return}
+    const title=(t.original_text.split(/[.!?\n]/)[0]||"Testemunho").trim().slice(0,90);
+    const slug=(slugify(title)||"testemunho")+"-"+String(t.id).slice(0,8);
+    const display=t.publication_consent==="ANONYMOUS"?"Anônimo":(t.display_name_original||"Anônimo");
+    const excerpt=t.original_text.replace(/\s+/g," ").slice(0,220);
+    const{data:pub,error}=await s.from("testimonial_publications").upsert({
+      testimonial_id:t.id,slug,public_title:title,public_excerpt:excerpt,public_text:t.original_text,
+      public_display_name:display,published_at:null,edited_by:userId
+    },{onConflict:"testimonial_id"}).select().single();
+    if(error){notify(error.message);return}
+    setPublications(current=>current.some(x=>x.id===pub.id)?current.map(x=>x.id===pub.id?pub:x):[pub,...current]);
+    const{data:reviewed}=await s.from("testimonials").update({status:"APROVADO",reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",t.id).select("id,display_name_original,original_text,publication_consent,status,created_at").single();
+    if(reviewed)setTestimonials(current=>current.map(x=>x.id===t.id?reviewed:x));
+    await audit("TESTIMONIAL_PREPARED","testimonial",t.id);
+    notify("Rascunho de publicação preparado. Revise antes de publicar.");
+  }
+
   async function publish(t:AnyRow){
     if(t.publication_consent==="PRIVATE_ONLY"){notify("Este testemunho não autoriza publicação.");return}
     const title=(t.original_text.split(/[.!?\n]/)[0]||"Testemunho").trim().slice(0,90);
@@ -281,70 +303,71 @@ export function AdminClient({
   const newCount=testimonials.filter(t=>t.status==="RECEBIDO").length;
   const brandSetting=settings.find(x=>x.setting_key==="brand")?.value||{};
   const contactSetting=settings.find(x=>x.setting_key==="contact")?.value||{};
+  const visiblePhotoCount=photos.filter(photo=>photo.is_private!==true).length;
+  const hiddenPhotoCount=photos.length-visiblePhotoCount;
+  const nextEvent=events.filter(event=>event.status==="PUBLICADO").sort((a,b)=>new Date(a.starts_at||0).getTime()-new Date(b.starts_at||0).getTime())[0]||events[0];
+  const filteredEvents=events.filter(event=>eventView==="all"||eventView==="draft"&&event.status==="RASCUNHO"||eventView==="published"&&event.status==="PUBLICADO"||eventView==="closed"&&event.status==="ENCERRADO");
+  const filteredTestimonials=testimonials.filter(item=>{
+    const publication=publications.find(p=>p.testimonial_id===item.id);
+    if(testimonialView==="new")return item.status==="RECEBIDO";
+    if(testimonialView==="review")return ["EM_ANALISE","APROVADO"].includes(item.status)&&!publication?.published_at;
+    if(testimonialView==="published")return !!publication?.published_at;
+    return item.status==="ARQUIVADO";
+  });
+  const selectedTestimonial=testimonials.find(item=>item.id===selectedTestimonialId)||null;
+  const selectedPublication=selectedTestimonial?publications.find(item=>item.testimonial_id===selectedTestimonial.id):null;
 
   function goTab(next:MainTab){setTab(next);setSelectedPage(null);if(next!=="pages")setMode("basic")}
 
   return <main className="admin-mobile-shell">
     <div className="admin-mobile-content">
-      <header className={"admin-page-heading "+(tab==="events"&&selectedEventId?"is-editor":"")}>
+      <header className={"admin-page-heading "+((tab==="events"&&selectedEventId)||(tab==="testimonials"&&selectedTestimonialId)||(tab==="pages"&&selectedPage)?"is-editor":"")}>
         <div>
           <span className="admin-kicker">Café com Testemunho</span>
-          <h1>{tab==="dashboard"?"Painel":tab==="pages"?(currentPage?.label||"Páginas"):tab==="events"?"Eventos":tab==="library"?"Biblioteca":"Ajustes"}</h1>
+          <h1>{tab==="dashboard"?"Painel":tab==="events"?"Eventos":tab==="testimonials"?"Testemunhos":tab==="gallery"?"Galeria":tab==="pages"?(currentPage?.label||"Páginas"):"Ajustes"}</h1>
         </div>
-        <a className="admin-preview-button" href="/" target="_blank" rel="noreferrer"><ExternalLink size={18}/><span>Ver site</span></a>
+        <div className="admin-heading-actions">
+          <a className="admin-header-icon" href="/" target="_blank" rel="noreferrer" aria-label="Ver site"><ExternalLink size={18}/></a>
+          <button className={"admin-header-icon "+(tab==="settings"?"active":"")} type="button" onClick={()=>goTab(tab==="settings"?"dashboard":"settings")} aria-label="Abrir ajustes"><Settings2 size={18}/></button>
+        </div>
       </header>
 
       {message&&<div className="admin-toast">{message}</div>}
 
-      {tab==="dashboard"&&<section className="admin-screen">
+      {tab==="dashboard"&&<section className="admin-screen admin-dashboard-clean">
         <div className="admin-welcome">
-          <div><span className="eyebrow">Administração</span><h2>O que você quer fazer?</h2><p>Gerencie o conteúdo completo do projeto pelo celular, sem precisar entrar no código.</p></div>
+          <div><span className="eyebrow">Administração</span><h2>O que precisa de atenção?</h2><p>Os fluxos principais ficam aqui. Ajustes de conteúdo e configuração ficam separados para não misturar tarefas.</p></div>
         </div>
-        <div className="admin-stat-grid">
-          <div className="admin-stat-card"><span>Eventos</span><strong>{events.length}</strong></div>
-          <div className="admin-stat-card"><span>Novos relatos</span><strong>{newCount}</strong></div>
-          <div className="admin-stat-card"><span>Fotos</span><strong>{photos.length}</strong></div>
-          <div className="admin-stat-card"><span>Posts</span><strong>{instagram.filter(x=>x.visible).length}</strong></div>
-        </div>
-        <div className="admin-action-list">
-          <button onClick={()=>goTab("pages")}><PanelsTopLeft/><div><strong>Editar páginas</strong><span>Todas as páginas e todas as seções</span></div><ChevronRight/></button>
-          <button onClick={()=>goTab("events")}><CalendarDays/><div><strong>Gerenciar eventos</strong><span>Criar, editar, publicar e arquivar</span></div><ChevronRight/></button>
-          <button onClick={()=>goTab("library")}><LibraryBig/><div><strong>Abrir biblioteca</strong><span>Fotos, testemunhos, Palavra e Instagram</span></div><ChevronRight/></button>
-          <button onClick={()=>goTab("settings")}><Settings2/><div><strong>Configurações</strong><span>Identidade, redes e dados globais</span></div><ChevronRight/></button>
-        </div>
-      </section>}
 
-      {tab==="pages"&&<section className="admin-screen">
-        {!currentPage?<div className="admin-page-list">
-          <div className="admin-section-intro"><span className="eyebrow">Conteúdo</span><h2>Todas as páginas</h2><p>Entre em uma página para editar suas seções. Você pode usar o modo básico ou o modo avançado.</p></div>
-          {pages.map(p=><button className="admin-page-card" key={p.key} onClick={()=>{setSelectedPage(p.key);setMode("basic")}}>
-            <div><strong>{p.label}</strong><span>{p.description}</span></div><ChevronRight/>
-          </button>)}
-        </div>:<div className="admin-page-editor">
-          <button className="admin-back" onClick={()=>setSelectedPage(null)}><ChevronLeft size={18}/>Voltar para páginas</button>
-          <ModeSwitch mode={mode} setMode={setMode}/>
-          <div className="admin-section-intro compact"><span className="eyebrow">{mode==="basic"?"Edição básica":"Modo avançado"}</span><h2>{currentPage.label}</h2><p>{mode==="basic"?"Edite os textos, imagens e visibilidade sem ver configurações técnicas.":"Controle completo da seção: ordem, CTA, alinhamento, estilo, movimento e configurações avançadas."}</p></div>
-          <div className="admin-editor-stack">
-            {pageSections.map(sec=><SectionEditor key={sec.id} section={sec} mode={mode} title={sectionNames[sec.section_key]||sec.title} onSave={saveSection} notify={notify}/>)}
-            {currentPage.special==="story"&&<div className="admin-subsection-group"><div className="admin-subsection-title"><BookHeart size={20}/><div><strong>História em capítulos</strong><span>Linha do tempo completa da página Sobre</span></div></div>{story.map(ch=><StoryEditor key={ch.id} chapter={ch} mode={mode} onSave={saveStory} onDelete={deleteStory} notify={notify}/>)}</div>}
-          </div>
-        </div>}
+        <div className="admin-focus-list">
+          <button onClick={()=>goTab("events")}><CalendarDays size={19}/><div><strong>Eventos</strong><span>{nextEvent?nextEvent.title:"Nenhum evento cadastrado"}</span></div><b>{events.length}</b><ChevronRight size={18}/></button>
+          <button onClick={()=>goTab("testimonials")}><MessageSquareQuote size={19}/><div><strong>Testemunhos</strong><span>{newCount?newCount+" aguardando revisão":"Nenhum novo relato"}</span></div><b>{newCount}</b><ChevronRight size={18}/></button>
+          <button onClick={()=>goTab("gallery")}><Images size={19}/><div><strong>Galeria</strong><span>{visiblePhotoCount+" fotos publicadas"}</span></div><b>{photos.length}</b><ChevronRight size={18}/></button>
+        </div>
+
+        <button className="admin-pages-entry" onClick={()=>goTab("pages")}><PanelsTopLeft size={18}/><div><strong>Editar páginas</strong><span>Textos, imagens e visibilidade do site</span></div><ChevronRight size={18}/></button>
       </section>}
 
       {tab==="events"&&<section className="admin-screen">
         {!selectedEventId?<>
-          <div className="admin-section-intro"><span className="eyebrow">Agenda</span><h2>Eventos</h2><p>Crie um rascunho e complete o evento em etapas. Cada etapa é salva antes de você avançar.</p></div>
+          <div className="admin-section-intro"><span className="eyebrow">Publicação</span><h2>Eventos</h2><p>Crie, complete e publique cada encontro em um fluxo único.</p></div>
           <form className="event-quick-create" onSubmit={createEvent}>
-            <div><strong>Novo evento</strong><span>Comece apenas pelo nome. O restante será preenchido no wizard.</span></div>
+            <div><strong>Criar evento</strong><span>Informe apenas o nome para começar. O restante é preenchido por etapas.</span></div>
             <Field label="Nome do evento"><input name="title" required placeholder="Ex.: Café com Testemunho"/></Field>
-            <button className="btn btn-dark" type="submit"><Plus size={17}/>Criar e começar</button>
+            <button className="admin-primary-action" type="submit"><Plus size={17}/>Criar rascunho</button>
           </form>
-          <div className="event-admin-list">{events.map(e=><button key={e.id} className="event-admin-row" onClick={()=>setSelectedEventId(e.id)}>
-            <div className="event-admin-row-main"><span className={"event-status-dot "+String(e.status).toLowerCase()}/><div><strong>{e.title}</strong><span>{e.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(e.starts_at)):"Data ainda não definida"} · {e.status}</span></div></div>
+          <div className="admin-segmented">
+            <button className={eventView==="all"?"active":""} onClick={()=>setEventView("all")}>Todos</button>
+            <button className={eventView==="draft"?"active":""} onClick={()=>setEventView("draft")}>Rascunhos</button>
+            <button className={eventView==="published"?"active":""} onClick={()=>setEventView("published")}>Publicados</button>
+            <button className={eventView==="closed"?"active":""} onClick={()=>setEventView("closed")}>Encerrados</button>
+          </div>
+          <div className="event-admin-list">{filteredEvents.map(e=><button key={e.id} className="event-admin-row" onClick={()=>setSelectedEventId(e.id)}>
+            <div className="event-admin-row-main"><span className={"event-status-dot "+String(e.status).toLowerCase()}/><div><strong>{e.title}</strong><span>{e.starts_at?new Intl.DateTimeFormat("pt-BR",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Sao_Paulo"}).format(new Date(e.starts_at)):"Data ainda não definida"} · {e.status==="RASCUNHO"?"Rascunho":e.status==="PUBLICADO"?"Publicado":"Encerrado"}</span></div></div>
             <div className="event-progress-mini"><span style={{width:Math.max(8,Math.min(100,Number(e.wizard_step||1)/8*100))+"%"}}/></div>
             <ChevronRight size={18}/>
           </button>)}
-          {!events.length&&<div className="admin-empty">Nenhum evento cadastrado.</div>}
+          {!filteredEvents.length&&<div className="admin-empty">Nenhum evento nesta etapa.</div>}
           </div>
         </>:(()=>{
           const e=events.find(x=>x.id===selectedEventId);
@@ -359,79 +382,128 @@ export function AdminClient({
         })()}
       </section>}
 
-      {tab==="library"&&<section className="admin-screen">
-        <div className="admin-library-tabs">
-          {([
-            ["photos","Fotos",Images],["testimonials","Testemunhos",MessageSquareQuote],["scripture","Palavra",BookHeart],["instagram","Instagram",Instagram]
-          ] as [LibraryKey,string,any][]).map(([key,label,Icon])=><button key={key} className={selectedLibrary===key?"active":""} onClick={()=>setSelectedLibrary(key)}><Icon size={18}/><span>{label}</span></button>)}
+      {tab==="testimonials"&&<section className="admin-screen">
+        {!selectedTestimonial?<>
+          <div className="admin-section-intro"><span className="eyebrow">Fluxo editorial</span><h2>Testemunhos</h2><p>Leia o relato original, confirme a autorização e só então prepare a publicação.</p></div>
+          <div className="admin-segmented admin-testimonial-tabs">
+            <button className={testimonialView==="new"?"active":""} onClick={()=>setTestimonialView("new")}>Novos</button>
+            <button className={testimonialView==="review"?"active":""} onClick={()=>setTestimonialView("review")}>Em revisão</button>
+            <button className={testimonialView==="published"?"active":""} onClick={()=>setTestimonialView("published")}>Publicados</button>
+            <button className={testimonialView==="archived"?"active":""} onClick={()=>setTestimonialView("archived")}>Arquivados</button>
+          </div>
+          <div className="admin-testimonial-list">
+            {filteredTestimonials.map(t=>{const pub=publications.find(p=>p.testimonial_id===t.id);return <button key={t.id} className="admin-testimonial-row" onClick={()=>setSelectedTestimonialId(t.id)}>
+              <div><strong>{t.display_name_original||"Sem identificação"}</strong><span>{String(t.original_text||"").replace(/\s+/g," ").slice(0,105)}{String(t.original_text||"").length>105?"…":""}</span><small>{new Date(t.created_at).toLocaleDateString("pt-BR")} · {t.publication_consent==="PRIVATE_ONLY"?"Somente privado":t.publication_consent==="ANONYMOUS"?"Pode publicar anônimo":"Pode publicar com nome"}</small></div>
+              <span className={"admin-testimonial-status "+(pub?.published_at?"published":"")}>{pub?.published_at?"Publicado":t.status==="RECEBIDO"?"Novo":t.status==="ARQUIVADO"?"Arquivado":"Revisão"}</span>
+              <ChevronRight size={18}/>
+            </button>})}
+            {!filteredTestimonials.length&&<div className="admin-empty">Nenhum testemunho nesta etapa.</div>}
+          </div>
+        </>:<div className="admin-testimonial-review">
+          <button className="admin-back" onClick={()=>setSelectedTestimonialId(null)}><ChevronLeft size={18}/>Voltar para testemunhos</button>
+          <div className="admin-review-header"><div><span className="eyebrow">Relato original</span><h2>{selectedTestimonial.display_name_original||"Sem identificação"}</h2></div><span className="status-pill">{selectedTestimonial.status}</span></div>
+
+          <section className="admin-review-consent">
+            <strong>Autorização recebida</strong>
+            <span>{selectedTestimonial.publication_consent==="PRIVATE_ONLY"?"Somente leitura privada. Este relato não pode ser publicado.":selectedTestimonial.publication_consent==="ANONYMOUS"?"Pode ser publicado sem identificar a autora.":"Pode ser publicado com o nome informado."}</span>
+          </section>
+
+          <article className="admin-review-original">{selectedTestimonial.original_text}</article>
+
+          <div className="admin-review-actions">
+            {selectedTestimonial.status==="RECEBIDO"&&<button onClick={()=>moderate(selectedTestimonial.id,"EM_ANALISE")}>Marcar em revisão</button>}
+            {selectedTestimonial.publication_consent!=="PRIVATE_ONLY"&&!selectedPublication&&<button className="primary" onClick={()=>preparePublication(selectedTestimonial)}>Preparar publicação</button>}
+            {selectedTestimonial.status!=="ARQUIVADO"&&<button onClick={()=>moderate(selectedTestimonial.id,"ARQUIVADO")}>Arquivar</button>}
+          </div>
+
+          {selectedPublication&&<TestimonialPublicationEditor item={selectedPublication} onSave={savePublication}/>}
+          <button className="admin-text-danger" onClick={()=>deleteTestimonial(selectedTestimonial.id)}>Excluir definitivamente</button>
+        </div>}
+      </section>}
+
+      {tab==="gallery"&&<section className="admin-screen">
+        <div className="admin-section-intro"><span className="eyebrow">Galeria</span><h2>Fotos</h2><p>Envie em lote, organize por álbum e escolha o que fica visível no site.</p></div>
+        <div className="admin-gallery-counts">
+          <div><strong>{photos.length}</strong><span>Total de fotos</span></div>
+          <div><strong>{visiblePhotoCount}</strong><span>Publicadas</span></div>
+          <div><strong>{hiddenPhotoCount}</strong><span>Ocultas</span></div>
         </div>
 
-        {selectedLibrary==="photos"&&<div className="admin-library-view">
-          <div className="admin-section-intro"><span className="eyebrow">Galeria</span><h2>Fotos e álbuns</h2><p>Envie imagens, destaque na Home e organize as memórias por álbum.</p></div>
-          <details className="admin-create-panel" open><summary><Upload size={18}/>Enviar foto</summary><form className="form" onSubmit={uploadPhoto}>
-            <Field label="Imagem"><input type="file" name="file" accept="image/*" required/></Field>
-            <Field label="Descrição"><input name="alt" placeholder="Descreva a foto"/></Field>
-            <Field label="Álbum"><select name="album_id" defaultValue=""><option value="">Galeria geral</option>{albums.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></Field>
-            <label className="admin-check"><input type="checkbox" name="featured"/>Destacar na página inicial</label>
-            <button className="btn btn-dark">Enviar imagem</button>
-          </form></details>
-          <details className="admin-create-panel"><summary><Plus size={18}/>Criar álbum</summary><form className="form" onSubmit={createAlbum}>
-            <Field label="Nome"><input name="title" required/></Field><Field label="Slug opcional"><input name="slug"/></Field><Field label="Descrição"><textarea name="description"/></Field><button className="btn btn-dark">Criar álbum</button>
+        <GalleryBulkUpload albums={albums} notify={notify} onUploaded={newPhotos=>setPhotos(current=>[...newPhotos,...current])}/>
+
+        <section className="admin-gallery-albums">
+          <div className="admin-inline-heading"><div><strong>Álbuns</strong><span>Use apenas quando precisar separar grupos de fotos.</span></div></div>
+          <details className="admin-create-panel"><summary><Plus size={17}/>Criar álbum</summary><form className="form" onSubmit={createAlbum}>
+            <Field label="Nome"><input name="title" required/></Field>
+            <Field label="Descrição"><textarea name="description"/></Field>
+            <button className="admin-primary-action" type="submit">Criar álbum</button>
           </form></details>
           {albums.length>0&&<div className="admin-editor-stack">{albums.map(a=><AlbumEditor key={a.id} album={a} onSave={saveAlbum} onDelete={deleteAlbum}/>)}</div>}
-          <div className="admin-photo-grid">{photos.map(p=><PhotoEditor key={p.id} photo={p} albums={albums} onSave={savePhoto} onDelete={deletePhoto}/>)}</div>
-        </div>}
+        </section>
 
-        {selectedLibrary==="testimonials"&&<div className="admin-library-view">
-          <div className="admin-section-intro"><span className="eyebrow">Moderação</span><h2>Testemunhos</h2><p>Revise os relatos recebidos e escolha o que pode ser publicado.</p></div>
-          <div className="admin-editor-stack">{testimonials.map(t=>{const pub=publications.find(p=>p.testimonial_id===t.id);return <article className="admin-content-card" key={t.id}><div className="admin-card-top"><span className="status-pill">{t.status}</span><small>{new Date(t.created_at).toLocaleDateString("pt-BR")}</small></div><h3>{t.display_name_original||"Sem identificação"}</h3><p className="admin-long-copy">{t.original_text}</p><div className="admin-card-actions"><button onClick={()=>moderate(t.id,"EM_ANALISE")}>Em análise</button><button onClick={()=>moderate(t.id,"APROVADO")}>Aprovar</button>{t.publication_consent!=="PRIVATE_ONLY"&&<button className="primary" onClick={()=>publish(t)}>{pub?"Republicar":"Publicar"}</button>}<button className="danger" onClick={()=>moderate(t.id,"ARQUIVADO")}>Ocultar</button><button className="danger" onClick={()=>deleteTestimonial(t.id)}>Remover</button></div>{pub&&<TestimonialPublicationEditor item={pub} onSave={savePublication}/>}</article>})}</div>
-        </div>}
+        <div className="admin-inline-heading gallery-heading"><div><strong>Fotos cadastradas</strong><span>Toque em uma foto para editar descrição, álbum ou visibilidade.</span></div></div>
+        <div className="admin-photo-grid">{photos.map(p=><PhotoEditor key={p.id} photo={p} albums={albums} onSave={savePhoto} onDelete={deletePhoto}/>)}</div>
+        {!photos.length&&<div className="admin-empty">Nenhuma foto cadastrada.</div>}
+      </section>}
 
-        {selectedLibrary==="scripture"&&<div className="admin-library-view">
-          <div className="admin-section-intro"><span className="eyebrow">Bíblia</span><h2>Palavra e versículos</h2><p>Cadastre as passagens que podem aparecer na Home e na página Sobre.</p></div>
-          <details className="admin-create-panel"><summary><Plus size={18}/>Adicionar Palavra</summary><form className="form" onSubmit={addScripture}>
-            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option><option value="about">Sobre</option></select></Field>
-            <Field label="Referência"><input name="reference" required/></Field><Field label="Versículo"><textarea name="verse_text" required/></Field><Field label="Reflexão"><textarea name="reflection"/></Field><button className="btn btn-dark">Adicionar</button>
-          </form></details>
-          <div className="admin-editor-stack">{scriptures.map(v=><ScriptureEditor key={v.id} item={v} onSave={saveScripture} onDelete={deleteScripture}/>)}</div>
-        </div>}
-
-        {selectedLibrary==="instagram"&&<div className="admin-library-view">
-          <div className="admin-section-intro"><span className="eyebrow">Curadoria</span><h2>Instagram</h2><p>Cole apenas o link de um post ou Reel público. O conteúdo original do Instagram é renderizado no site, sem recadastrar foto, título ou legenda.</p></div>
-          <details className="admin-create-panel" open><summary><Plus size={18}/>Selecionar post do Instagram</summary><form className="form" onSubmit={addInstagram}>
-            <Field label="Link do post ou Reel" hint="Ex.: https://www.instagram.com/p/... ou /reel/..."><input name="post_url" type="url" required placeholder="https://www.instagram.com/p/..."/></Field>
-            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option></select></Field>
-            <button className="btn btn-dark">Adicionar ao site</button>
-          </form></details>
-          <div className="admin-editor-stack">{instagram.map(p=><InstagramAdminEditor key={p.id} item={p} onSave={saveInstagram} onDelete={deleteInstagram}/>)}</div>
-          {!instagram.length&&<div className="admin-empty">Nenhum post selecionado. O post que estava cadastrado anteriormente foi removido.</div>}
+      {tab==="pages"&&<section className="admin-screen">
+        {!currentPage?<div className="admin-page-list">
+          <div className="admin-section-intro"><span className="eyebrow">Conteúdo do site</span><h2>Páginas</h2><p>Escolha uma página. Dentro dela aparecem somente os campos que realmente controlam aquela tela.</p></div>
+          {pages.map(p=><button className="admin-page-card admin-page-card-clean" key={p.key} onClick={()=>{setSelectedPage(p.key);setMode("basic")}}>
+            <div><strong>{p.label}</strong><span>{p.description}</span></div><ChevronRight size={18}/>
+          </button>)}
+        </div>:<div className="admin-page-editor">
+          <div className="admin-page-editor-bar">
+            <button className="admin-back" onClick={()=>setSelectedPage(null)}><ChevronLeft size={18}/>Páginas</button>
+            <a className="admin-page-preview" href={currentPage.key==="home"?"/":currentPage.key==="about"?"/sobre":currentPage.key==="submit"?"/enviar-testemunho":"/"+currentPage.key} target="_blank" rel="noreferrer"><ExternalLink size={15}/>Ver página</a>
+          </div>
+          <div className="admin-section-intro compact"><span className="eyebrow">Edição da página</span><h2>{currentPage.label}</h2><p>Abra uma seção por vez, edite o conteúdo e salve. Configurações técnicas ficam recolhidas.</p></div>
+          <div className="admin-editor-stack">
+            {pageSections.map(sec=><SectionEditor key={sec.id} section={sec} mode="basic" title={sectionNames[sec.section_key]||sec.title} onSave={saveSection} notify={notify}/>)}
+            {currentPage.special==="story"&&<div className="admin-subsection-group"><div className="admin-subsection-title"><div><strong>História em capítulos</strong><span>Linha do tempo da página Sobre</span></div></div>{story.map(ch=><StoryEditor key={ch.id} chapter={ch} mode="basic" onSave={saveStory} onDelete={deleteStory} notify={notify}/>)}</div>}
+          </div>
         </div>}
       </section>}
 
       {tab==="settings"&&<section className="admin-screen">
-        <div className="admin-section-intro"><span className="eyebrow">Sistema</span><h2>Configurações</h2><p>Identidade, contato, redes sociais e dados globais do projeto.</p></div>
-        <SettingCard title="Identidade do projeto">
-          <BrandSettings value={brandSetting} onSave={v=>saveSetting("brand",v)} notify={notify}/>
-        </SettingCard>
-        <SettingCard title="Contato">
-          <ContactSettings value={contactSetting} onSave={v=>saveSetting("contact",v)}/>
-        </SettingCard>
-        <SettingCard title="Redes sociais">
-          <div className="admin-editor-stack">{social.map(item=><SocialEditor key={item.id} item={item} onSave={saveSocial}/>)}</div>
-        </SettingCard>
-        <SettingCard title="Rodapé">
-          {sections.find(x=>x.section_key==="global_footer")&&<SectionEditor section={sections.find(x=>x.section_key==="global_footer")!} mode="advanced" title="Conteúdo global do rodapé" onSave={saveSection} notify={notify}/>}
-        </SettingCard>
+        <div className="admin-section-intro"><span className="eyebrow">Ajustes</span><h2>Configurações</h2><p>Itens globais e conteúdos auxiliares. Você não precisa entrar aqui para publicar eventos, testemunhos ou fotos.</p></div>
+        <SettingCard title="Identidade do projeto"><BrandSettings value={brandSetting} onSave={v=>saveSetting("brand",v)} notify={notify}/></SettingCard>
+        <SettingCard title="Contato"><ContactSettings value={contactSetting} onSave={v=>saveSetting("contact",v)}/></SettingCard>
+        <SettingCard title="Redes sociais"><div className="admin-editor-stack">{social.map(item=><SocialEditor key={item.id} item={item} onSave={saveSocial}/>)}</div></SettingCard>
+
+        <div className="admin-settings-secondary">
+          <div className="admin-inline-heading"><div><strong>Palavra e versículos</strong><span>Conteúdo bíblico usado na Home e na página Sobre.</span></div></div>
+          <details className="admin-create-panel"><summary><Plus size={17}/>Adicionar Palavra</summary><form className="form" onSubmit={addScripture}>
+            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option><option value="about">Sobre</option></select></Field>
+            <Field label="Referência"><input name="reference" required/></Field>
+            <Field label="Versículo"><textarea name="verse_text" required/></Field>
+            <Field label="Reflexão"><textarea name="reflection"/></Field>
+            <button className="admin-primary-action">Adicionar Palavra</button>
+          </form></details>
+          <div className="admin-editor-stack">{scriptures.map(v=><ScriptureEditor key={v.id} item={v} onSave={saveScripture} onDelete={deleteScripture}/>)}</div>
+        </div>
+
+        <div className="admin-settings-secondary">
+          <div className="admin-inline-heading"><div><strong>Instagram</strong><span>Links de posts ou Reels exibidos no site.</span></div></div>
+          <details className="admin-create-panel"><summary><Plus size={17}/>Adicionar publicação</summary><form className="form" onSubmit={addInstagram}>
+            <Field label="Link do post ou Reel"><input name="post_url" type="url" required placeholder="https://www.instagram.com/p/..."/></Field>
+            <Field label="Onde aparece"><select name="location"><option value="home">Página inicial</option></select></Field>
+            <button className="admin-primary-action">Adicionar ao site</button>
+          </form></details>
+          <div className="admin-editor-stack">{instagram.map(p=><InstagramAdminEditor key={p.id} item={p} onSave={saveInstagram} onDelete={deleteInstagram}/>)}</div>
+        </div>
+
+        <SettingCard title="Rodapé">{sections.find(x=>x.section_key==="global_footer")&&<SectionEditor section={sections.find(x=>x.section_key==="global_footer")!} mode="basic" title="Conteúdo global do rodapé" onSave={saveSection} notify={notify}/>}</SettingCard>
         <button className="admin-logout" onClick={logout}><LogOut size={18}/>Sair da conta <small>{userEmail}</small></button>
       </section>}
     </div>
 
     <nav className="admin-bottom-nav" aria-label="Navegação administrativa">
-      <button className={tab==="dashboard"?"active":""} onClick={()=>goTab("dashboard")}><LayoutDashboard size={21}/><span>Início</span></button>
-      <button className={tab==="pages"?"active":""} onClick={()=>goTab("pages")}><PanelsTopLeft size={21}/><span>Páginas</span></button>
-      <button className={tab==="events"?"active":""} onClick={()=>goTab("events")}><CalendarDays size={21}/><span>Eventos</span></button>
-      <button className={tab==="library"?"active":""} onClick={()=>goTab("library")}><LibraryBig size={21}/><span>Biblioteca</span></button>
-      <button className={tab==="settings"?"active":""} onClick={()=>goTab("settings")}><Settings2 size={21}/><span>Ajustes</span></button>
+      <button className={tab==="dashboard"?"active":""} onClick={()=>goTab("dashboard")}><LayoutDashboard size={20}/><span>Início</span></button>
+      <button className={tab==="events"?"active":""} onClick={()=>goTab("events")}><CalendarDays size={20}/><span>Eventos</span></button>
+      <button className={tab==="testimonials"?"active":""} onClick={()=>{goTab("testimonials");setSelectedTestimonialId(null)}}><MessageSquareQuote size={20}/><span>Testemunhos</span></button>
+      <button className={tab==="gallery"?"active":""} onClick={()=>goTab("gallery")}><Images size={20}/><span>Galeria</span></button>
+      <button className={tab==="pages"?"active":""} onClick={()=>goTab("pages")}><PanelsTopLeft size={20}/><span>Páginas</span></button>
     </nav>
   </main>
 }
