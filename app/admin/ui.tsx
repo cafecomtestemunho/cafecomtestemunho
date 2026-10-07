@@ -716,7 +716,7 @@ function EventWizard({
   return <div className="event-wizard">
     <div className="event-wizard-top">
       <button className="admin-back" onClick={onBack}><ChevronLeft size={18}/>Eventos</button>
-      <ModeSwitch mode={mode} setMode={setMode}/>
+      <span className={"event-editor-status "+String(state.status||"RASCUNHO").toLowerCase()}>{state.status==="PUBLICADO"?"Publicado":state.status==="ENCERRADO"?"Encerrado":"Rascunho"}</span>
     </div>
 
     <div className="event-wizard-heading">
@@ -783,12 +783,14 @@ function EventWizard({
       {step===7&&<>
         <WizardHeading icon={<SlidersHorizontal size={20}/>} title="Informações extras" text="Complete somente o que fizer sentido para este encontro."/>
         <div className="event-faq-block"><strong>Dúvidas frequentes</strong><FaqCreate eventId={event.id} onAdd={onAddFaq}/><div className="event-nested-list">{faqs.map(item=><FaqEditor key={item.id} item={item} onSave={onUpdateFaq} onDelete={onDeleteFaq}/>)}</div></div>
-        {mode==="advanced"&&<div className="admin-advanced-box">
-          <div className="admin-advanced-label"><SlidersHorizontal size={17}/><strong>Configurações avançadas</strong></div>
-          <div className="event-date-grid"><Field label="Data de término"><input type="date" value={endParts.date} onChange={e=>setEndDate(e.target.value)}/></Field><Field label="Horário de término"><input type="time" value={endParts.time} onChange={e=>setEndTime(e.target.value)}/></Field></div>
-          <Field label="Link do mapa"><input type="url" value={state.map_url||""} onChange={e=>set("map_url",e.target.value)} placeholder="Google Maps ou outro serviço"/></Field>
-          <Field label="Slug da página"><input value={state.slug||""} onChange={e=>set("slug",slugifyLocal(e.target.value))}/></Field>
-        </div>}
+        <details className="admin-secondary-options">
+          <summary>Detalhes opcionais</summary>
+          <div>
+            <div className="event-date-grid"><Field label="Data de término"><input type="date" value={endParts.date} onChange={e=>setEndDate(e.target.value)}/></Field><Field label="Horário de término"><input type="time" value={endParts.time} onChange={e=>setEndTime(e.target.value)}/></Field></div>
+            <Field label="Link do mapa"><input type="url" value={state.map_url||""} onChange={e=>set("map_url",e.target.value)} placeholder="Google Maps ou outro serviço"/></Field>
+            <Field label="Endereço da página"><input value={state.slug||""} onChange={e=>set("slug",slugifyLocal(e.target.value))}/></Field>
+          </div>
+        </details>
       </>}
 
       {step===8&&<>
@@ -884,17 +886,36 @@ function FaqEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:A
 }
 
 function TestimonialPublicationEditor({item,onSave}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void}){
-  const[state,setState]=useState<AnyRow>({...item});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
+  const[state,setState]=useState<AnyRow>({...item});
+  const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
   const visible=!!state.published_at;
-  return <details className="admin-publication-editor"><summary><span>Edição pública</span><small>{visible?"Visível no site":"Oculto"}</small></summary><div className="admin-section-body">
-    <div className="admin-inline-toggle"><div><strong>Exibir testemunho</strong><span>Ocultar preserva o conteúdo no painel.</span></div><button className={visible?"on":""} onClick={()=>set("published_at",visible?null:new Date().toISOString())} type="button"><span/></button></div>
-    <Field label="Título"><input value={state.public_title||""} onChange={e=>set("public_title",e.target.value)}/></Field>
+  function persist(publishedAt:any){
+    set("published_at",publishedAt);
+    onSave(item.id,{
+      public_title:state.public_title,
+      public_display_name:state.public_display_name,
+      public_excerpt:state.public_excerpt||null,
+      public_text:state.public_text,
+      featured:state.featured===true,
+      published_at:publishedAt
+    });
+  }
+  return <section className="admin-publication-editor admin-publication-workflow">
+    <div className="admin-publication-heading">
+      <div><span className="eyebrow">Publicação</span><h3>Como este testemunho vai aparecer</h3><p>Revise título, nome e texto antes de tornar público.</p></div>
+      <span className={"status-pill "+(visible?"published":"")}>{visible?"Publicado":"Rascunho"}</span>
+    </div>
+    <Field label="Título público"><input value={state.public_title||""} onChange={e=>set("public_title",e.target.value)}/></Field>
     <Field label="Nome exibido"><input value={state.public_display_name||""} onChange={e=>set("public_display_name",e.target.value)}/></Field>
     <Field label="Resumo"><textarea value={state.public_excerpt||""} onChange={e=>set("public_excerpt",e.target.value)}/></Field>
     <Field label="Texto publicado"><textarea value={state.public_text||""} onChange={e=>set("public_text",e.target.value)}/></Field>
     <label className="admin-check"><input type="checkbox" checked={state.featured===true} onChange={e=>set("featured",e.target.checked)}/>Destacar na página inicial</label>
-    <button className="admin-save-button" onClick={()=>onSave(item.id,{public_title:state.public_title,public_display_name:state.public_display_name,public_excerpt:state.public_excerpt||null,public_text:state.public_text,featured:state.featured===true,published_at:state.published_at})}><Save size={17}/>Salvar publicação</button>
-  </div></details>
+    <div className="admin-publication-actions">
+      <button type="button" onClick={()=>persist(null)}>Salvar rascunho</button>
+      <button className="primary" type="button" onClick={()=>persist(state.published_at||new Date().toISOString())}>{visible?"Atualizar publicação":"Publicar no site"}</button>
+      {visible&&<button className="ghost-danger" type="button" onClick={()=>persist(null)}>Ocultar do site</button>}
+    </div>
+  </section>;
 }
 
 function ScriptureEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
@@ -921,17 +942,19 @@ function AlbumEditor({album,onSave,onDelete}:{album:AnyRow;onSave:(id:string,pat
 function PhotoEditor({photo,albums,onSave,onDelete}:{photo:AnyRow;albums:AnyRow[];onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
   const[state,setState]=useState<AnyRow>({...photo});const set=(k:string,v:any)=>setState((x:AnyRow)=>({...x,[k]:v}));
   const visible=state.is_private!==true;
-  return <figure className={"admin-photo-manage "+(!visible?"is-hidden":"")}>
-    <img src={state.url} alt={state.alt_text||""}/>
+  return <details className={"admin-photo-manage "+(!visible?"is-hidden":"")}>
+    <summary>
+      <img src={state.url} alt={state.alt_text||""}/>
+      <span className="admin-photo-status">{visible?"Publicada":"Oculta"}{state.featured?" · Destaque":""}</span>
+    </summary>
     <figcaption>
-      <div className="admin-photo-status"><span>{visible?"Visível":"Oculta"}</span>{state.featured&&<span>Destaque</span>}</div>
       <Field label="Descrição"><input value={state.alt_text||""} onChange={e=>set("alt_text",e.target.value)}/></Field>
       <Field label="Álbum"><select value={state.album_id||""} onChange={e=>set("album_id",e.target.value||null)}><option value="">Galeria geral</option>{albums.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></Field>
       <label className="admin-check"><input type="checkbox" checked={state.featured===true} onChange={e=>set("featured",e.target.checked)}/>Destacar na página inicial</label>
       <label className="admin-check"><input type="checkbox" checked={visible} onChange={e=>set("is_private",!e.target.checked)}/>Exibir no site</label>
-      <div className="admin-record-actions compact"><button className="admin-save-button" onClick={()=>onSave(photo.id,{alt_text:state.alt_text||null,album_id:state.album_id||null,featured:state.featured===true,is_private:state.is_private===true,sort_order:Number(state.sort_order)||0})}><Save size={16}/>Salvar</button><button className="admin-remove-button" onClick={()=>onDelete(photo.id)}><Trash2 size={16}/></button></div>
+      <div className="admin-record-actions compact"><button className="admin-save-button" onClick={()=>onSave(photo.id,{alt_text:state.alt_text||null,album_id:state.album_id||null,featured:state.featured===true,is_private:state.is_private===true,sort_order:Number(state.sort_order)||0})}><Save size={16}/>Salvar</button><button className="admin-remove-button" onClick={()=>onDelete(photo.id)}><Trash2 size={16}/>Excluir</button></div>
     </figcaption>
-  </figure>
+  </details>;
 }
 
 function InstagramAdminEditor({item,onSave,onDelete}:{item:AnyRow;onSave:(id:string,patch:AnyRow)=>void;onDelete:(id:string)=>void}){
