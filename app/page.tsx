@@ -1,4 +1,5 @@
 import"./home-v3.css";
+import type{CSSProperties}from"react";
 import Link from"next/link";
 import{ArrowRight,CalendarDays,BookHeart,Instagram,Images,HeartHandshake,MapPin}from"lucide-react";
 import{createServerSupabaseClient}from"@/lib/supabase/server";
@@ -13,7 +14,7 @@ export default async function HomePage(){
   s.from("events").select("*").eq("status","PUBLICADO").gte("starts_at",now).order("starts_at").limit(1).maybeSingle(),
   s.from("testimonial_publications").select("slug,public_title,public_excerpt,public_display_name,published_at").not("published_at","is",null).order("featured",{ascending:false}).order("published_at",{ascending:false}).limit(2),
   s.from("scripture_spotlights").select("*").eq("location","home").eq("visible",true).order("sort_order").limit(1).maybeSingle(),
-  s.from("media_assets").select("id,url,alt_text,featured,created_at").eq("media_type","image").eq("is_private",false).order("featured",{ascending:false}).order("created_at",{ascending:false}).limit(6),
+  s.from("media_assets").select("id,url,alt_text,featured,created_at").eq("media_type","image").eq("is_private",false).order("featured",{ascending:false}).order("created_at",{ascending:false}).limit(12),
   s.from("instagram_highlights").select("id,post_url").eq("visible",true).in("location",["home","both"]).order("sort_order").limit(8),
   s.from("social_links").select("url").eq("icon_key","instagram").eq("visible",true).order("sort_order").limit(1).maybeSingle(),
   s.from("site_settings").select("value").eq("setting_key","brand").maybeSingle()
@@ -64,7 +65,32 @@ export default async function HomePage(){
       {Array.from({length:8}).map((_,i)=><span key={"d-"+i}>Próximo evento <b aria-hidden="true">•</b></span>)}
     </div>
    </div>}
-   {!!photos?.length&&<section className="home3-photos"><div className="container"><Reveal className="home3-section-head"><div><span className="home3-kicker">Memórias</span><h2>Momentos do Café</h2></div><Link href="/fotos">Ver galeria <Images size={17}/></Link></Reveal><div className="home3-photo-grid">{photos.map((p,i)=><Reveal key={p.id} delay={i*55} className={"home3-photo "+(i===0?"featured":"")}><img src={p.url} alt={p.alt_text||"Registro do Café com Testemunho"} loading="lazy"/></Reveal>)}</div></div></section>}
+   {!!photos?.length&&<section className="home3-photos">
+    <div className="container">
+      <Reveal className="home3-section-head">
+        <div><span className="home3-kicker">Memórias</span><h2>Momentos do Café</h2></div>
+        <Link href="/fotos">Ver galeria <Images size={17}/></Link>
+      </Reveal>
+    </div>
+    <div className="home3-photo-rail" aria-label="Fotos dos encontros do Café com Testemunho">
+      <div className={"home3-photo-track"+(photos.length<2?" is-static":"")}
+        style={{"--home3-photo-duration":`${Math.max(100,photos.length*12)}s`} as CSSProperties}>
+        {(photos.length>1?[0,1]:[0]).map(copy=>
+          <div className="home3-photo-set" key={copy} aria-hidden={copy===1}>
+            {photos.map((photo,index)=>
+              <Link key={photo.id} href="/fotos" className="home3-photo-card"
+                tabIndex={copy===1?-1:undefined}
+                aria-label={copy===0?"Abrir a galeria de fotos":undefined}>
+                <img src={photo.url}
+                  alt={copy===0?(photo.alt_text||"Registro do Café com Testemunho"):""}
+                  loading="lazy" draggable={false}/>
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+   </section>}
    {!!featured?.length&&<section className="home3-testimonies"><div className="container"><Reveal className="home3-section-head"><div><span className="home3-kicker">Histórias que acolhem</span><h2>Testemunhos</h2></div><Link href="/testemunhos">Ver todos <ArrowRight size={16}/></Link></Reveal><div className="home3-testimony-grid">{featured.map((t,i)=><Reveal key={t.slug} delay={i*70}><article className="home3-testimony"><BookHeart size={22}/><h3>{t.public_title}</h3><p>{t.public_excerpt}</p><small>{t.public_display_name}</small><Link href={"/testemunhos/"+t.slug}>Ler testemunho <ArrowRight size={15}/></Link></article></Reveal>)}</div></div></section>}
    {!!instagram?.length&&<section className="home3-instagram"><div className="container home3-instagram-layout"><Reveal className="home3-instagram-copy"><span className="home3-kicker">Do nosso Instagram</span><h2>@cafe_testemunho</h2><p>Um pouco dos encontros, mensagens e momentos que também compartilhamos por lá.</p>{social?.url&&<a href={social.url} target="_blank" rel="noreferrer">Abrir perfil <Instagram size={17}/></a>}</Reveal><Reveal delay={90}><InstagramCarousel posts={instagram}/></Reveal></div></section>}
    {cta?.visible!==false&&<section className="home3-cta"><div className="container"><Reveal className="home3-cta-inner"><HeartHandshake size={28}/><span className="home3-kicker">Faça parte</span><h2>{cta?.title??"Faça parte do próximo capítulo"}</h2><p>{cta?.body??"Essa história continua sendo escrita em cada encontro, em cada mulher que chega e em cada testemunho compartilhado."}</p><div><Link href="/agenda">Participar de um encontro</Link><Link href="/enviar-testemunho">Compartilhar meu testemunho</Link></div></Reveal></div></section>}
