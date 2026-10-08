@@ -32,7 +32,7 @@ export function PhotoShowcase({photos}:{photos:Photo[]}){
   return <>
     <div className="photo-showcase" aria-label="Galeria de fotos">
       <div className="photo-showcase-viewport">
-        <div className="photo-showcase-track photo-showcase-track-forward">
+        <div className="photo-showcase-track photo-showcase-track-forward" style={{"--photo-duration":`${Math.max(72,trackA.length*6)}s`}as React.CSSProperties}>
           {[...trackA,...trackA].map((photo,index)=><button
             type="button"
             className="photo-showcase-card"
@@ -47,7 +47,7 @@ export function PhotoShowcase({photos}:{photos:Photo[]}){
       </div>
 
       <div className="photo-showcase-viewport photo-showcase-viewport-secondary">
-        <div className="photo-showcase-track photo-showcase-track-reverse">
+        <div className="photo-showcase-track photo-showcase-track-reverse" style={{"--photo-duration":`${Math.max(80,trackB.length*6.5)}s`}as React.CSSProperties}>
           {[...trackB,...trackB].map((photo,index)=><button
             type="button"
             className="photo-showcase-card photo-showcase-card-secondary"
