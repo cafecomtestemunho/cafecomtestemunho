@@ -20,7 +20,7 @@ export default async function AdminPage(){
     s.from("event_schedule").select("*").order("sort_order"),
     s.from("event_faqs").select("*").order("sort_order"),
     s.from("event_rsvps").select("*").order("created_at",{ascending:false}),
-    s.from("testimonials").select("id,display_name_original,original_text,publication_consent,status,created_at").order("created_at",{ascending:false}).limit(100),
+    s.from("testimonials").select("id,display_name_original,contact_instagram,original_text,publication_consent,status,created_at").order("created_at",{ascending:false}).limit(100),
     s.from("testimonial_publications").select("*").order("created_at",{ascending:false}),
     s.from("institutional_sections").select("*").order("sort_order"),
     s.from("story_chapters").select("*").order("sort_order"),

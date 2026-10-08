@@ -166,7 +166,7 @@ export function AdminClient({
     notify("Rascunho criado. Comece pela primeira etapa.");
   }
   async function moderate(id:string,status:string){
-    const{data,error}=await s.from("testimonials").update({status,reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",id).select("id,display_name_original,original_text,publication_consent,status,created_at").single();
+    const{data,error}=await s.from("testimonials").update({status,reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",id).select("id,display_name_original,contact_instagram,original_text,publication_consent,status,created_at").single();
     if(error){notify(error.message);return}
     if(status==="ARQUIVADO"){
       const{data:pub}=await s.from("testimonial_publications").update({published_at:null,edited_by:userId}).eq("testimonial_id",id).select().maybeSingle();
@@ -186,7 +186,7 @@ export function AdminClient({
     },{onConflict:"testimonial_id"}).select().single();
     if(error){notify(error.message);return}
     setPublications(current=>current.some(x=>x.id===pub.id)?current.map(x=>x.id===pub.id?pub:x):[pub,...current]);
-    const{data:reviewed}=await s.from("testimonials").update({status:"APROVADO",reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",t.id).select("id,display_name_original,original_text,publication_consent,status,created_at").single();
+    const{data:reviewed}=await s.from("testimonials").update({status:"APROVADO",reviewer_id:userId,reviewed_at:new Date().toISOString()}).eq("id",t.id).select("id,display_name_original,contact_instagram,original_text,publication_consent,status,created_at").single();
     if(reviewed)setTestimonials(current=>current.map(x=>x.id===t.id?reviewed:x));
     await audit("TESTIMONIAL_PREPARED","testimonial",t.id);
     notify("Rascunho de publicação preparado. Revise antes de publicar.");
@@ -411,6 +411,7 @@ export function AdminClient({
             <span>{selectedTestimonial.publication_consent==="PRIVATE_ONLY"?"Somente leitura privada. Este relato não pode ser publicado.":selectedTestimonial.publication_consent==="ANONYMOUS"?"Pode ser publicado sem identificar a autora.":"Pode ser publicado com o nome informado."}</span>
           </section>
 
+          {selectedTestimonial.contact_instagram&&<div className="admin-review-contact"><Instagram size={16}/><span>Instagram: <a href={"https://www.instagram.com/"+encodeURIComponent(String(selectedTestimonial.contact_instagram).replace(/^@/,""))} target="_blank" rel="noreferrer noopener">{selectedTestimonial.contact_instagram}</a></span></div>}
           <article className="admin-review-original">{selectedTestimonial.original_text}</article>
 
           <div className="admin-review-actions">

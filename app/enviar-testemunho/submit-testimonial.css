@@ -1,0 +1,92 @@
+/* Página de envio de testemunho — experiência mobile-first */
+.submit-story-page{
+  --submit-coffee:#351a0d;
+  --submit-gold:#c49255;
+  background:#fff8f1;
+}
+.submit-story-hero{
+  isolation:isolate;
+  position:relative;
+  overflow:hidden;
+  background-color:var(--submit-coffee);
+  background-image:
+    radial-gradient(ellipse at 92% 36%,rgba(207,139,75,.48),transparent 48%),
+    radial-gradient(ellipse at 8% 90%,rgba(118,62,33,.45),transparent 60%),
+    linear-gradient(126deg,#2a1208 0%,#4b2614 70%,#683718 100%);
+  background-size:cover;
+  background-position:center;
+  color:#fff6eb;
+  padding:58px 0 94px;
+}
+.submit-story-light{position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,rgba(35,14,6,.25),transparent 72%)}
+.submit-story-art{position:absolute;z-index:-1;right:-25px;top:72px;display:grid;place-items:center;width:210px;height:235px;color:#e5b777;opacity:.21;transform:rotate(-9deg);pointer-events:none}
+.submit-story-coffee{width:138px;height:138px}
+.submit-story-book{position:absolute;width:190px;height:115px;top:129px;transform:rotate(-9deg)}
+.submit-story-hero-content.container{position:relative;z-index:2;width:min(100% - 36px,720px);margin:auto;text-align:center}
+.submit-story-eyebrow{font-size:.71rem;letter-spacing:.19em;font-weight:900;color:#e5bc83;text-transform:uppercase}
+.submit-story-line{display:flex;justify-content:center;align-items:center;gap:10px;margin:13px auto 18px;color:#e1af66}
+.submit-story-line span{height:1px;width:35px;background:#c89650}
+.submit-story-hero h1{max-width:690px;margin:0 auto;font:400 clamp(2.3rem,7vw,4.4rem)/1.08 Georgia,"Times New Roman",serif;letter-spacing:-.025em;color:#fff5e8;text-wrap:balance}
+.submit-story-hero p{max-width:565px;margin:18px auto 0;color:#f4e4d5;font-size:clamp(.97rem,2.3vw,1.08rem);line-height:1.72;text-wrap:pretty}
+.submit-story-wave{position:absolute;left:0;bottom:-1px;right:0;height:58px;pointer-events:none}
+.submit-story-wave svg{width:100%;height:100%;display:block;fill:#fff8f1}
+.submit-story-section{background:#fff8f1;padding:38px 0 124px}
+.submit-story-form-wrap.container{width:min(100% - 30px,720px);margin:auto}
+.submit-story-form.testimonial-form{position:relative;overflow:hidden;display:grid;gap:21px;padding:clamp(24px,4.2vw,44px);border-radius:26px;border:1px solid rgba(101,58,31,.09);background:#fffaf6;box-shadow:0 16px 46px rgba(72,34,16,.09)}
+.submit-story-form:before{content:"";position:absolute;right:-50px;top:-52px;width:185px;height:220px;background:url("/word-botanical.svg") center/contain no-repeat;opacity:.13;pointer-events:none}
+.submit-story-form-header{position:relative;z-index:1}
+.submit-story-form-eyebrow{display:flex;align-items:center;gap:9px;color:#af783d;font-size:.72rem;font-weight:850;letter-spacing:.17em}
+.submit-story-form-header h2,.submit-story-success h2{margin:11px 0 13px;font:400 clamp(2.2rem,5.5vw,3rem)/1.08 Georgia,"Times New Roman",serif;color:#351c11;letter-spacing:-.025em}
+.submit-story-form-header p{max-width:590px;margin:0;color:#655246;font-size:1rem;font-weight:400;line-height:1.63}
+.submit-story-fields{display:grid;gap:17px;position:relative}
+.submit-story-form .submit-story-fields label{display:grid;gap:7px;color:#4e3427;font-size:.86rem;font-weight:800}
+.submit-story-fields label small{font-weight:500;font-size:.75rem;color:#8d796b}
+.submit-story-form .submit-story-input{display:flex;align-items:center;gap:11px;min-height:54px;border:1px solid #e0d4ca;border-radius:15px;padding:0 15px;background:#fffdfa;transition:border-color .2s ease,box-shadow .2s ease}
+.submit-story-input:focus-within{border-color:#ad794a;box-shadow:0 0 0 3px rgba(185,132,76,.15)}
+.submit-story-input>svg{flex:none;color:#998477}
+.submit-story-form .submit-story-input input,.submit-story-form .submit-story-input textarea{display:block;min-width:0;width:100%;border:0;border-radius:0;background:transparent;box-shadow:none;padding:15px 0;font:400 16px/1.4 Inter,ui-sans-serif,system-ui,sans-serif;color:#3e2a20;outline:0}
+.submit-story-form .submit-story-input input:focus,.submit-story-form .submit-story-input textarea:focus{border:0;box-shadow:none}
+.submit-story-input input::placeholder,.submit-story-input textarea::placeholder{color:#93847b;opacity:1;font-weight:400}
+.submit-story-form .submit-story-textarea{align-items:flex-start;padding-top:3px}
+.submit-story-textarea>svg{margin-top:15px}
+.submit-story-form .submit-story-textarea textarea{min-height:160px;resize:vertical}
+.submit-story-form .submit-story-consent{display:flex;align-items:flex-start;gap:10px;cursor:pointer;color:#664f3f;font-size:.79rem;font-weight:600;line-height:1.48}
+.submit-story-form .submit-story-consent input{appearance:auto;flex:0 0 17px;width:17px;height:17px;margin:2px 0 0;padding:0;accent-color:#8e5a2e}
+.submit-story-consent small{display:block;margin-top:4px;color:#8a786a;font-size:.72rem;font-weight:400;line-height:1.5}
+.submit-story-form .submit-story-button{display:flex;align-items:center;justify-content:center;gap:11px;width:100%;min-height:58px;padding:13px 20px;border:1px solid rgba(255,225,180,.65);border-radius:999px;background:linear-gradient(112deg,#a96c37 0%,#dcad70 46%,#9d602d 100%);color:#fffaf4;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 10px 22px rgba(90,47,20,.17);transition:filter .2s,transform .2s}
+.submit-story-button:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1px)}
+.submit-story-button:focus-visible,.submit-story-again:focus-visible{outline:3px solid #b98349;outline-offset:3px}
+.submit-story-button:disabled{opacity:.67;cursor:wait}
+.submit-story-form .submit-story-note{display:flex;align-items:flex-start;justify-content:center;gap:9px;margin:-2px 0 0;color:#796655;font-size:.73rem;line-height:1.48;font-weight:400}
+.submit-story-note>svg{flex:none;color:#bc8b55}
+.submit-story-error{margin:0;color:#9d332a;font-size:.82rem;line-height:1.45;font-weight:700}
+.submit-story-success{min-height:340px;justify-items:center;align-content:center;text-align:center}
+.submit-story-success>svg{color:#c18c51}
+.submit-story-success>p{max-width:480px;margin:0;color:#756053;line-height:1.6}
+.submit-story-again{margin-top:12px;padding:13px 20px;border:1px solid #dcc6ae;background:#f8ede0;color:#59351e;border-radius:999px;font-weight:750;cursor:pointer}
+
+@media(max-width:600px){
+  .submit-story-hero{padding:45px 0 80px}
+  .submit-story-hero-content.container{width:calc(100% - 42px)}
+  .submit-story-eyebrow{font-size:.64rem;letter-spacing:.16em}
+  .submit-story-hero h1{font-size:clamp(2.1rem,9vw,2.75rem);line-height:1.08}
+  .submit-story-hero p{max-width:390px;margin-top:19px;font-size:.93rem;line-height:1.62}
+  .submit-story-art{right:-64px;top:95px;opacity:.16;transform:scale(.85) rotate(-9deg)}
+  .submit-story-wave{height:39px}
+  .submit-story-section{padding:26px 0 118px}
+  .submit-story-form-wrap.container{width:calc(100% - 28px)}
+  .submit-story-form.testimonial-form{gap:18px;padding:25px 20px 24px;border-radius:24px}
+  .submit-story-form-header h2{font-size:2.16rem}
+  .submit-story-form-header p{font-size:.95rem;line-height:1.56}
+  .submit-story-form:before{width:135px;height:170px;right:-47px;top:-36px;opacity:.09}
+  .submit-story-form .submit-story-note{font-size:.7rem}
+  .submit-story-form .submit-story-button{min-height:55px}
+}
+@media(max-width:350px){
+  .submit-story-form.testimonial-form{padding:22px 16px}
+  .submit-story-hero h1{font-size:2rem}
+  .submit-story-form-header h2{font-size:1.98rem}
+}
+@media(prefers-reduced-motion:reduce){
+  .submit-story-form .submit-story-button{transition:none}
+}
